@@ -1,0 +1,36 @@
+{
+  "name": "e-ecommerce-be",
+  "version": "1.0.0",
+  "description": "E-Commerce Backend API with Express, TypeScript and SQL Server",
+  "main": "dist/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ecommerce",
+    "api",
+    "backend",
+    "sql-server",
+    "express",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "mssql": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.4",
+    "@types/mssql": "^9.1.8",
+    "@types/node": "^24.9.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
