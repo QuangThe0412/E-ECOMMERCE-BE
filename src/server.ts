@@ -1,5 +1,6 @@
 import express, { Application } from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler } from './middlewares/errorHandler';
 import { logger } from './utils/logger';
@@ -17,6 +18,13 @@ dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
+
+// CORS configuration
+app.use(cors({
+  origin: FRONTEND_URL,
+  credentials: true
+}));
 
 // Middleware
 app.use(express.json());
@@ -28,6 +36,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'E-Commerce API Documentation',
 }));
+
 
 // Swagger JSON endpoint
 app.get('/api-docs.json', (_req, res) => {
