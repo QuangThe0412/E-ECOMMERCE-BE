@@ -1,161 +1,199 @@
-import sql from 'mssql';
-import { getPool } from '../config/database';
+import prisma from '../lib/prisma';
 import { AppError } from '../middlewares/errorHandler';
-import { Product } from '../types/product';
+import type { Product, CreateProductDTO, UpdateProductDTO } from '../types/product';
 
 export class ProductService {
+  /**
+   * Get all products with pagination, search, and filter
+   */
   async getAllProducts(page: number, limit: number, search?: string, category?: string) {
     try {
-      const pool = getPool();
       const offset = (page - 1) * limit;
 
-      let query = `
-        SELECT * FROM Products 
-        WHERE 1=1
-      `;
+      // Build where clause
+      const where: any = {};
 
       if (search) {
-        query += ` AND (Name LIKE @search OR Description LIKE @search)`;
+        where.OR = [
+          { Name: { contains: search } },
+          { Description: { contains: search } },
+        ];
       }
 
       if (category) {
-        query += ` AND Category = @category`;
+        where.Category = category;
       }
 
-      query += `
-        ORDER BY CreatedAt DESC
-        OFFSET @offset ROWS
-        FETCH NEXT @limit ROWS ONLY
-      `;
-
-      const request = pool.request()
-        .input('limit', sql.Int, limit)
-        .input('offset', sql.Int, offset);
-
-      if (search) {
-        request.input('search', sql.NVarChar, `%${search}%`);
-      }
-
-      if (category) {
-        request.input('category', sql.NVarChar, category);
-      }
-
-      const result = await request.query(query);
-
-      let countQuery = 'SELECT COUNT(*) as total FROM Products WHERE 1=1';
-      
-      if (search) {
-        countQuery += ` AND (Name LIKE @search OR Description LIKE @search)`;
-      }
-
-      if (category) {
-        countQuery += ` AND Category = @category`;
-      }
-
-      const countRequest = pool.request();
-      
-      if (search) {
-        countRequest.input('search', sql.NVarChar, `%${search}%`);
-      }
-
-      if (category) {
-        countRequest.input('category', sql.NVarChar, category);
-      }
-
-      const countResult = await countRequest.query(countQuery);
+      // Execute queries in parallel
+      const [data, total] = await Promise.all([
+        prisma.products.findMany({
+          where,
+          skip: offset,
+          take: limit,
+          orderBy: {
+            Id: 'desc',
+          },
+        }),
+        prisma.products.count({ where }),
+      ]);
 
       return {
-        data: result.recordset,
-        total: countResult.recordset[0]?.total || 0,
+        data,
+        total,
       };
     } catch (error) {
+      console.error('ProductService.getAllProducts error:', error);
       throw new AppError('Error fetching products', 500);
     }
   }
 
-  async getProductById(id: string) {
+  /**
+   * Get product by ID
+   */
+  async getProductById(id: number) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .query('SELECT * FROM Products WHERE Id = @id');
+      const product = await prisma.products.findUnique({
+        where: { Id: id },
+      });
 
-      if (result.recordset.length === 0) {
+      if (!product) {
         throw new AppError('Product not found', 404);
       }
 
-      return result.recordset[0];
+      return product as unknown as Product;
     } catch (error) {
       if (error instanceof AppError) throw error;
+      console.error('ProductService.getProductById error:', error);
       throw new AppError('Error fetching product', 500);
     }
   }
 
-  async createProduct(productData: Partial<Product>) {
+  /**
+   * Create new product
+   */
+  async createProduct(productData: CreateProductDTO) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('name', sql.NVarChar, productData.name)
-        .input('description', sql.NVarChar, productData.description)
-        .input('price', sql.Decimal(18, 2), productData.price)
-        .input('stock', sql.Int, productData.stock)
-        .input('category', sql.NVarChar, productData.category)
-        .query(`
-          INSERT INTO Products (Name, Description, Price, Stock, Category, CreatedAt)
-          OUTPUT INSERTED.*
-          VALUES (@name, @description, @price, @stock, @category, GETDATE())
-        `);
+      const product = await prisma.products.create({
+        data: {
+          Name: productData.Name,
+          Description: productData.Description || null,
+          Image: productData.Image || null,
+          Category: productData.Category || null,
+          Price: productData.Price,
+          OriginalPrice: productData.OriginalPrice || null,
+          Stock: productData.Stock,
+          Rating: productData.Rating || null,
+          Reviews: productData.Reviews || 0,
+          Colors: productData.Colors || null,
+          Sizes: productData.Sizes || null,
+        },
+      });
 
-      return result.recordset[0];
+      return product as unknown as Product;
     } catch (error) {
+      console.error('ProductService.createProduct error:', error);
       throw new AppError('Error creating product', 500);
     }
   }
 
-  async updateProduct(id: string, productData: Partial<Product>) {
+  /**
+   * Update product
+   */
+  async updateProduct(id: number, productData: UpdateProductDTO) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .input('name', sql.NVarChar, productData.name)
-        .input('description', sql.NVarChar, productData.description)
-        .input('price', sql.Decimal(18, 2), productData.price)
-        .input('stock', sql.Int, productData.stock)
-        .input('category', sql.NVarChar, productData.category)
-        .query(`
-          UPDATE Products 
-          SET Name = @name, Description = @description, Price = @price, 
-              Stock = @stock, Category = @category, UpdatedAt = GETDATE()
-          OUTPUT INSERTED.*
-          WHERE Id = @id
-        `);
+      // Check if product exists
+      await this.getProductById(id);
 
-      if (result.recordset.length === 0) {
-        throw new AppError('Product not found', 404);
+      // Build update data - only include defined fields
+      const updateData: any = {};
+
+      if (productData.Name !== undefined) updateData.Name = productData.Name;
+      if (productData.Description !== undefined) updateData.Description = productData.Description;
+      if (productData.Image !== undefined) updateData.Image = productData.Image;
+      if (productData.Category !== undefined) updateData.Category = productData.Category;
+      if (productData.Price !== undefined) updateData.Price = productData.Price;
+      if (productData.OriginalPrice !== undefined) updateData.OriginalPrice = productData.OriginalPrice;
+      if (productData.Stock !== undefined) updateData.Stock = productData.Stock;
+      if (productData.Rating !== undefined) updateData.Rating = productData.Rating;
+      if (productData.Reviews !== undefined) updateData.Reviews = productData.Reviews;
+      if (productData.Colors !== undefined) updateData.Colors = productData.Colors;
+      if (productData.Sizes !== undefined) updateData.Sizes = productData.Sizes;
+
+      if (Object.keys(updateData).length === 0) {
+        throw new AppError('No fields to update', 400);
       }
 
-      return result.recordset[0];
+      const product = await prisma.products.update({
+        where: { Id: id },
+        data: updateData,
+      });
+
+      return product as unknown as Product;
     } catch (error) {
       if (error instanceof AppError) throw error;
+      console.error('ProductService.updateProduct error:', error);
       throw new AppError('Error updating product', 500);
     }
   }
 
-  async deleteProduct(id: string) {
+  /**
+   * Delete product
+   */
+  async deleteProduct(id: number) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .query('DELETE FROM Products WHERE Id = @id');
+      // Check if product exists
+      await this.getProductById(id);
 
-      if (result.rowsAffected[0] === 0) {
-        throw new AppError('Product not found', 404);
+      // Check if product is in any orders
+      const orderItemsCount = await prisma.orderItems.count({
+        where: { ProductId: id },
+      });
+
+      if (orderItemsCount > 0) {
+        throw new AppError('Cannot delete product that exists in orders', 400);
       }
+
+      await prisma.products.delete({
+        where: { Id: id },
+      });
 
       return true;
     } catch (error) {
       if (error instanceof AppError) throw error;
+      console.error('ProductService.deleteProduct error:', error);
       throw new AppError('Error deleting product', 500);
+    }
+  }
+
+  /**
+   * Get products by category
+   */
+  async getProductsByCategory(category: string, page: number, limit: number) {
+    return this.getAllProducts(page, limit, undefined, category);
+  }
+
+  /**
+   * Update product stock
+   */
+  async updateProductStock(id: number, quantity: number) {
+    try {
+      const product = await this.getProductById(id);
+
+      const newStock = product.Stock + quantity;
+      if (newStock < 0) {
+        throw new AppError('Insufficient stock', 400);
+      }
+
+      const updatedProduct = await prisma.products.update({
+        where: { Id: id },
+        data: { Stock: newStock },
+      });
+
+      return updatedProduct as unknown as Product;
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      console.error('ProductService.updateProductStock error:', error);
+      throw new AppError('Error updating product stock', 500);
     }
   }
 }

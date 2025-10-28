@@ -1,74 +1,48 @@
-import sql from 'mssql';
-import { getPool } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { AppError } from '../middlewares/errorHandler';
 import { Order } from '../types/order';
 
 export class OrderService {
   async getAllOrders(page: number, limit: number, status?: string) {
     try {
-      const pool = getPool();
       const offset = (page - 1) * limit;
 
-      let query = `
-        SELECT * FROM Orders 
-        WHERE 1=1
-      `;
+      const whereClause = status ? { Status: status } : {};
 
-      if (status) {
-        query += ` AND Status = @status`;
-      }
-
-      query += `
-        ORDER BY CreatedAt DESC
-        OFFSET @offset ROWS
-        FETCH NEXT @limit ROWS ONLY
-      `;
-
-      const request = pool.request()
-        .input('limit', sql.Int, limit)
-        .input('offset', sql.Int, offset);
-
-      if (status) {
-        request.input('status', sql.NVarChar, status);
-      }
-
-      const result = await request.query(query);
-
-      let countQuery = 'SELECT COUNT(*) as total FROM Orders WHERE 1=1';
-      
-      if (status) {
-        countQuery += ` AND Status = @status`;
-      }
-
-      const countRequest = pool.request();
-      
-      if (status) {
-        countRequest.input('status', sql.NVarChar, status);
-      }
-
-      const countResult = await countRequest.query(countQuery);
+      const [orders, total] = await Promise.all([
+        prisma.orders.findMany({
+          where: whereClause,
+          orderBy: { CreatedAt: 'desc' },
+          skip: offset,
+          take: limit,
+        }),
+        prisma.orders.count({ where: whereClause }),
+      ]);
 
       return {
-        data: result.recordset,
-        total: countResult.recordset[0]?.total || 0,
+        data: orders,
+        total,
       };
     } catch (error) {
       throw new AppError('Error fetching orders', 500);
     }
   }
 
-  async getOrderById(id: string) {
+  async getOrderById(id: number) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .query('SELECT * FROM Orders WHERE Id = @id');
+      const order = await prisma.orders.findUnique({
+        where: { Id: id },
+        include: {
+          OrderItems: true,
+          Customers: true,
+        },
+      });
 
-      if (result.recordset.length === 0) {
+      if (!order) {
         throw new AppError('Order not found', 404);
       }
 
-      return result.recordset[0];
+      return order;
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError('Error fetching order', 500);
@@ -77,57 +51,53 @@ export class OrderService {
 
   async createOrder(orderData: Partial<Order>) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('userId', sql.NVarChar, orderData.userId)
-        .input('totalAmount', sql.Decimal(18, 2), orderData.totalAmount)
-        .input('status', sql.NVarChar, 'pending')
-        .query(`
-          INSERT INTO Orders (UserId, TotalAmount, Status, CreatedAt)
-          OUTPUT INSERTED.*
-          VALUES (@userId, @totalAmount, @status, GETDATE())
-        `);
+      const order = await prisma.orders.create({
+        data: {
+          CustomerId: orderData.CustomerId!,
+          Total: orderData.Total!,
+          Status: 'pending',
+          CreatedAt: new Date(),
+          PaymentMethod: orderData.PaymentMethod || null,
+          Notes: orderData.Notes || null,
+        },
+      });
 
-      return result.recordset[0];
+      return order;
     } catch (error) {
       throw new AppError('Error creating order', 500);
     }
   }
 
-  async updateOrderStatus(id: string, status: string) {
+  async updateOrderStatus(id: number, status: string) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .input('status', sql.NVarChar, status)
-        .query(`
-          UPDATE Orders 
-          SET Status = @status, UpdatedAt = GETDATE()
-          OUTPUT INSERTED.*
-          WHERE Id = @id
-        `);
+      const order = await prisma.orders.update({
+        where: { Id: id },
+        data: {
+          Status: status,
+        },
+      });
 
-      if (result.recordset.length === 0) {
-        throw new AppError('Order not found', 404);
-      }
-
-      return result.recordset[0];
+      return order;
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError('Error updating order status', 500);
     }
   }
 
-  async deleteOrder(id: string) {
+  async deleteOrder(id: number) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .query('DELETE FROM Orders WHERE Id = @id');
+      // Check if order has order items
+      const itemsCount = await prisma.orderItems.count({
+        where: { OrderId: id },
+      });
 
-      if (result.rowsAffected[0] === 0) {
-        throw new AppError('Order not found', 404);
+      if (itemsCount > 0) {
+        throw new AppError('Cannot delete order with existing items', 400);
       }
+
+      await prisma.orders.delete({
+        where: { Id: id },
+      });
 
       return true;
     } catch (error) {

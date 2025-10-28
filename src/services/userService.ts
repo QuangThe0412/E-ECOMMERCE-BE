@@ -1,30 +1,24 @@
-import sql from 'mssql';
-import { getPool } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { AppError } from '../middlewares/errorHandler';
 import { User } from '../types/user';
 
 export class UserService {
   async getAllUsers(page: number, limit: number) {
     try {
-      const pool = getPool();
       const offset = (page - 1) * limit;
 
-      const result = await pool.request()
-        .input('limit', sql.Int, limit)
-        .input('offset', sql.Int, offset)
-        .query(`
-          SELECT * FROM Users 
-          ORDER BY CreatedAt DESC
-          OFFSET @offset ROWS
-          FETCH NEXT @limit ROWS ONLY
-        `);
-
-      const countResult = await pool.request()
-        .query('SELECT COUNT(*) as total FROM Users');
+      const [users, total] = await Promise.all([
+        prisma.users_Auth.findMany({
+          orderBy: { CreatedAt: 'desc' },
+          skip: offset,
+          take: limit,
+        }),
+        prisma.users_Auth.count(),
+      ]);
 
       return {
-        data: result.recordset,
-        total: countResult.recordset[0]?.total || 0,
+        data: users,
+        total,
       };
     } catch (error) {
       throw new AppError('Error fetching users', 500);
@@ -33,16 +27,15 @@ export class UserService {
 
   async getUserById(id: string) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .query('SELECT * FROM Users WHERE Id = @id');
+      const user = await prisma.users_Auth.findUnique({
+        where: { Id: id },
+      });
 
-      if (result.recordset.length === 0) {
+      if (!user) {
         throw new AppError('User not found', 404);
       }
 
-      return result.recordset[0];
+      return user;
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError('Error fetching user', 500);
@@ -51,18 +44,16 @@ export class UserService {
 
   async createUser(userData: Partial<User>) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('email', sql.NVarChar, userData.email)
-        .input('name', sql.NVarChar, userData.name)
-        .input('password', sql.NVarChar, userData.password)
-        .query(`
-          INSERT INTO Users (Email, Name, Password, CreatedAt)
-          OUTPUT INSERTED.*
-          VALUES (@email, @name, @password, GETDATE())
-        `);
+      const user = await prisma.users_Auth.create({
+        data: {
+          Email: userData.email!,
+          Username: userData.name!, // Map name to username
+          PasswordHash: userData.password!,
+          Role: 'user',
+        },
+      });
 
-      return result.recordset[0];
+      return user;
     } catch (error) {
       throw new AppError('Error creating user', 500);
     }
@@ -70,23 +61,25 @@ export class UserService {
 
   async updateUser(id: string, userData: Partial<User>) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .input('email', sql.NVarChar, userData.email)
-        .input('name', sql.NVarChar, userData.name)
-        .query(`
-          UPDATE Users 
-          SET Email = @email, Name = @name, UpdatedAt = GETDATE()
-          OUTPUT INSERTED.*
-          WHERE Id = @id
-        `);
-
-      if (result.recordset.length === 0) {
-        throw new AppError('User not found', 404);
+      const updateData: any = {};
+      
+      if (userData.email) {
+        updateData.Email = userData.email;
+      }
+      if (userData.name) {
+        updateData.Username = userData.name;
       }
 
-      return result.recordset[0];
+      if (Object.keys(updateData).length === 0) {
+        throw new AppError('No fields to update', 400);
+      }
+
+      const user = await prisma.users_Auth.update({
+        where: { Id: id },
+        data: updateData,
+      });
+
+      return user;
     } catch (error) {
       if (error instanceof AppError) throw error;
       throw new AppError('Error updating user', 500);
@@ -95,14 +88,22 @@ export class UserService {
 
   async deleteUser(id: string) {
     try {
-      const pool = getPool();
-      const result = await pool.request()
-        .input('id', sql.NVarChar, id)
-        .query('DELETE FROM Users WHERE Id = @id');
+      // Check if user has refresh tokens
+      const tokensCount = await prisma.refreshTokens.count({
+        where: { UserId: id },
+      });
 
-      if (result.rowsAffected[0] === 0) {
-        throw new AppError('User not found', 404);
+      if (tokensCount > 0) {
+        // Revoke all refresh tokens before deleting
+        await prisma.refreshTokens.updateMany({
+          where: { UserId: id },
+          data: { Revoked: true },
+        });
       }
+
+      await prisma.users_Auth.delete({
+        where: { Id: id },
+      });
 
       return true;
     } catch (error) {

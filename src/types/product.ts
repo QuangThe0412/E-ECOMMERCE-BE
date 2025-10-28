@@ -1,29 +1,42 @@
 export interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  category: string;
-  imageUrl?: string;
-  createdAt: Date;
-  updatedAt?: Date;
+  Id: number;
+  Name: string;
+  Description?: string;
+  Image?: string;
+  Category?: string;
+  Price: number;
+  OriginalPrice?: number;
+  Stock: number;
+  Rating?: number;
+  Reviews?: number;
+  Colors?: string;
+  Sizes?: string;
 }
 
 export interface CreateProductDTO {
-  name: string;
-  description: string;
-  price: number;
-  stock: number;
-  category: string;
-  imageUrl?: string;
+  Name: string;
+  Description?: string;
+  Image?: string;
+  Category?: string;
+  Price: number;
+  OriginalPrice?: number;
+  Stock: number;
+  Rating?: number;
+  Reviews?: number;
+  Colors?: string;
+  Sizes?: string;
 }
 
 export interface UpdateProductDTO {
-  name?: string;
-  description?: string;
-  price?: number;
-  stock?: number;
-  category?: string;
-  imageUrl?: string;
+  Name?: string;
+  Description?: string;
+  Image?: string;
+  Category?: string;
+  Price?: number;
+  OriginalPrice?: number;
+  Stock?: number;
+  Rating?: number;
+  Reviews?: number;
+  Colors?: string;
+  Sizes?: string;
 }

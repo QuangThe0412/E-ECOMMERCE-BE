@@ -1,30 +1,45 @@
 export interface Order {
-  id: string;
-  userId: string;
-  totalAmount: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
-  createdAt: Date;
-  updatedAt?: Date;
+  Id: number;
+  CustomerId: number;
+  CreatedAt: Date;
+  Total: number;
+  Status: string;
+  PaymentMethod?: string;
+  Notes?: string;
 }
 
 export interface OrderItem {
-  id: string;
-  orderId: string;
-  productId: string;
-  quantity: number;
-  price: number;
-  createdAt: Date;
+  Id: number;
+  OrderId: number;
+  ProductId: number;
+  Quantity: number;
+  Price: number;
+}
+
+export interface OrderWithItems extends Order {
+  Items?: OrderItem[];
+  CustomerName?: string;
 }
 
 export interface CreateOrderDTO {
-  userId: string;
-  items: {
-    productId: string;
-    quantity: number;
-    price: number;
+  CustomerId: number;
+  Total: number;
+  Status?: string;
+  PaymentMethod?: string;
+  Notes?: string;
+  Items: {
+    ProductId: number;
+    Quantity: number;
+    Price: number;
   }[];
 }
 
+export interface UpdateOrderDTO {
+  Status?: string;
+  PaymentMethod?: string;
+  Notes?: string;
+}
+
 export interface UpdateOrderStatusDTO {
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  Status: 'pending' | 'processing' | 'completed' | 'cancelled';
 }

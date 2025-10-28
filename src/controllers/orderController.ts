@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response } from 'express';
 import { OrderService } from '../services/orderService';
 import { ApiResponse } from '../utils/response';
 import { asyncHandler } from '../middlewares/errorHandler';
@@ -10,7 +10,7 @@ export class OrderController {
     this.orderService = new OrderService();
   }
 
-  getAllOrders = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  getAllOrders = asyncHandler(async (req: Request, res: Response) => {
     const { page = 1, limit = 10, status } = req.query;
     
     const result = await this.orderService.getAllOrders(
@@ -29,31 +29,46 @@ export class OrderController {
     );
   });
 
-  getOrderById = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  getOrderById = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    const order = await this.orderService.getOrderById(id);
+    
+    if (!id) {
+      return ApiResponse.error(res, 'Order ID is required', 400);
+    }
+    
+    const order = await this.orderService.getOrderById(Number(id));
     
     return ApiResponse.success(res, order, 'Order retrieved successfully');
   });
 
-  createOrder = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  createOrder = asyncHandler(async (req: Request, res: Response) => {
     const orderData = req.body;
     const order = await this.orderService.createOrder(orderData);
     
     return ApiResponse.success(res, order, 'Order created successfully', 201);
   });
 
-  updateOrderStatus = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  updateOrderStatus = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status } = req.body;
-    const order = await this.orderService.updateOrderStatus(id, status);
+    
+    if (!id) {
+      return ApiResponse.error(res, 'Order ID is required', 400);
+    }
+    
+    const order = await this.orderService.updateOrderStatus(Number(id), status);
     
     return ApiResponse.success(res, order, 'Order status updated successfully');
   });
 
-  deleteOrder = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  deleteOrder = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
-    await this.orderService.deleteOrder(id);
+    
+    if (!id) {
+      return ApiResponse.error(res, 'Order ID is required', 400);
+    }
+    
+    await this.orderService.deleteOrder(Number(id));
     
     return ApiResponse.success(res, null, 'Order deleted successfully');
   });
