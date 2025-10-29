@@ -25,15 +25,14 @@ export interface UserResponse {
 }
 
 export interface LoginRequest {
-  username: string;
+  phone: string;
   password: string;
 }
 
 export interface RegisterRequest {
-  username: string;
-  email: string;
+  phone: string;
   password: string;
-  confirmPassword: string;
+  email?: string;  // Optional
 }
 
 export interface LoginResponse {

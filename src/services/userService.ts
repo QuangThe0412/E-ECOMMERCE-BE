@@ -8,12 +8,12 @@ export class UserService {
       const offset = (page - 1) * limit;
 
       const [users, total] = await Promise.all([
-        prisma.users_Auth.findMany({
+        prisma.users.findMany({
           orderBy: { CreatedAt: 'desc' },
           skip: offset,
           take: limit,
         }),
-        prisma.users_Auth.count(),
+        prisma.users.count(),
       ]);
 
       return {
@@ -27,7 +27,7 @@ export class UserService {
 
   async getUserById(id: string) {
     try {
-      const user = await prisma.users_Auth.findUnique({
+      const user = await prisma.users.findUnique({
         where: { Id: id },
       });
 
@@ -44,7 +44,7 @@ export class UserService {
 
   async createUser(userData: Partial<User>) {
     try {
-      const user = await prisma.users_Auth.create({
+      const user = await prisma.users.create({
         data: {
           Email: userData.email!,
           Username: userData.name!, // Map name to username
@@ -74,7 +74,7 @@ export class UserService {
         throw new AppError('No fields to update', 400);
       }
 
-      const user = await prisma.users_Auth.update({
+      const user = await prisma.users.update({
         where: { Id: id },
         data: updateData,
       });
@@ -101,7 +101,7 @@ export class UserService {
         });
       }
 
-      await prisma.users_Auth.delete({
+      await prisma.users.delete({
         where: { Id: id },
       });
 

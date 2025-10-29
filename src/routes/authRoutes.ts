@@ -89,7 +89,6 @@ router.post('/login', loginRateLimiter, authController.login);
  *               - username
  *               - email
  *               - password
- *               - confirmPassword
  *             properties:
  *               username:
  *                 type: string
@@ -99,10 +98,6 @@ router.post('/login', loginRateLimiter, authController.login);
  *                 format: email
  *                 example: user@example.com
  *               password:
- *                 type: string
- *                 format: password
- *                 example: password123
- *               confirmPassword:
  *                 type: string
  *                 format: password
  *                 example: password123

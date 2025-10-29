@@ -34,7 +34,6 @@ export class OrderService {
         where: { Id: id },
         include: {
           OrderItems: true,
-          Customers: true,
         },
       });
 
@@ -53,7 +52,7 @@ export class OrderService {
     try {
       const order = await prisma.orders.create({
         data: {
-          CustomerId: orderData.CustomerId!,
+          UserId: orderData.UserId!,
           Total: orderData.Total!,
           Status: 'pending',
           CreatedAt: new Date(),

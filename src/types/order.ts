@@ -1,6 +1,6 @@
 export interface Order {
   Id: number;
-  CustomerId: number;
+  UserId: string; // UNIQUEIDENTIFIER
   CreatedAt: Date;
   Total: number;
   Status: string;
@@ -18,11 +18,11 @@ export interface OrderItem {
 
 export interface OrderWithItems extends Order {
   Items?: OrderItem[];
-  CustomerName?: string;
+  UserName?: string;
 }
 
 export interface CreateOrderDTO {
-  CustomerId: number;
+  UserId: string; // UNIQUEIDENTIFIER
   Total: number;
   Status?: string;
   PaymentMethod?: string;

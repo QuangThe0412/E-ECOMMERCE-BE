@@ -31,8 +31,8 @@ export class AuthController {
     const credentials: LoginRequest = req.body;
     const ipAddress = this.getClientIp(req);
 
-    if (!credentials.username || !credentials.password) {
-      return ApiResponse.error(res, 'Username and password are required', 400);
+    if (!credentials.phone || !credentials.password) {
+      return ApiResponse.error(res, 'Phone number and password are required', 400);
     }
 
     const result = await this.authService.login(credentials, ipAddress);
@@ -50,8 +50,9 @@ export class AuthController {
   register = asyncHandler(async (req: Request, res: Response) => {
     const userData: RegisterRequest = req.body;
 
-    if (!userData.username || !userData.email || !userData.password || !userData.confirmPassword) {
-      return ApiResponse.error(res, 'All fields are required', 400);
+    // Only phone and password are required
+    if (!userData.phone || !userData.password) {
+      return ApiResponse.error(res, 'Phone and password are required', 400);
     }
 
     const result = await this.authService.register(userData);

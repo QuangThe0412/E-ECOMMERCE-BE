@@ -7,15 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Customers {
-  Id      Int      @id(map: "PK__Customer__3214EC07BB63E018") @default(autoincrement())
-  Name    String   @db.NVarChar(100)
-  Email   String   @db.NVarChar(255)
-  Phone   String?  @db.NVarChar(20)
-  Address String?  @db.NVarChar(255)
-  Orders  Orders[]
-}
-
 model LoginAttempts {
   Id          String    @id(map: "PK__LoginAtt__3214EC0762CE3ACF") @default(dbgenerated("newid()"), map: "DF__LoginAttempt__Id__5535A963") @db.UniqueIdentifier
   IpAddress   String    @db.NVarChar(45)
@@ -29,25 +20,32 @@ model LoginAttempts {
 }
 
 model OrderItems {
-  Id        Int      @id(map: "PK__OrderIte__3214EC077A87F926") @default(autoincrement())
+  Id        Int      @id(map: "PK__OrderIte__3214EC07FC66FBED") @default(autoincrement())
   OrderId   Int
   ProductId Int
-  Quantity  Int
+  Quantity  Int      @default(1, map: "DF__OrderItem__Quant__5FB337D6")
   Price     Decimal  @db.Decimal(18, 2)
-  Orders    Orders   @relation(fields: [OrderId], references: [Id], onUpdate: NoAction, map: "FK__OrderItem__Order__3F466844")
-  Products  Products @relation(fields: [ProductId], references: [Id], onUpdate: NoAction, map: "FK__OrderItem__Produ__403A8C7D")
+  Orders    Orders   @relation(fields: [OrderId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_OrderItems_Orders")
+  Products  Products @relation(fields: [ProductId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_OrderItems_Products")
+
+  @@index([OrderId], map: "IX_OrderItems_OrderId")
+  @@index([ProductId], map: "IX_OrderItems_ProductId")
 }
 
 model Orders {
-  Id            Int          @id(map: "PK__Orders__3214EC071D463760") @default(autoincrement())
-  CustomerId    Int
-  CreatedAt     DateTime     @db.DateTime
-  Total         Decimal      @db.Decimal(18, 2)
-  Status        String       @db.NVarChar(50)
+  Id            Int          @id(map: "PK__Orders__3214EC0775A717BF") @default(autoincrement())
+  UserId        String       @db.UniqueIdentifier
+  CreatedAt     DateTime     @default(now(), map: "DF__Orders__CreatedA__59FA5E80") @db.DateTime
+  Total         Decimal      @default(0, map: "DF__Orders__Total__5AEE82B9") @db.Decimal(18, 2)
+  Status        String       @default("pending", map: "DF__Orders__Status__5BE2A6F2") @db.NVarChar(50)
   PaymentMethod String?      @db.NVarChar(50)
   Notes         String?      @db.NVarChar(255)
   OrderItems    OrderItems[]
-  Customers     Customers    @relation(fields: [CustomerId], references: [Id], onUpdate: NoAction, map: "FK__Orders__Customer__3C69FB99")
+  Users         Users        @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_Orders_Users")
+
+  @@index([CreatedAt], map: "IX_Orders_CreatedAt")
+  @@index([Status], map: "IX_Orders_Status")
+  @@index([UserId], map: "IX_Orders_UserId")
 }
 
 model Products {
@@ -67,33 +65,38 @@ model Products {
 }
 
 model RefreshTokens {
-  Id         String     @id(map: "PK__RefreshT__3214EC072DE9642E") @default(dbgenerated("newid()"), map: "DF__RefreshToken__Id__4E88ABD4") @db.UniqueIdentifier
-  UserId     String     @db.UniqueIdentifier
-  Token      String     @unique(map: "UQ__RefreshT__1EB4F817C90DD66C") @db.NVarChar(500)
-  ExpiresAt  DateTime
-  CreatedAt  DateTime?  @default(now(), map: "DF__RefreshTo__Creat__4F7CD00D")
-  Revoked    Boolean?   @default(false, map: "DF__RefreshTo__Revok__5070F446")
-  Users_Auth Users_Auth @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_RefreshTokens_Users")
+  Id        String    @id(map: "PK__RefreshT__3214EC072DE9642E") @default(dbgenerated("newid()"), map: "DF__RefreshToken__Id__4E88ABD4") @db.UniqueIdentifier
+  UserId    String    @db.UniqueIdentifier
+  Token     String    @unique(map: "UQ__RefreshT__1EB4F817C90DD66C") @db.NVarChar(500)
+  ExpiresAt DateTime
+  CreatedAt DateTime? @default(now(), map: "DF__RefreshTo__Creat__4F7CD00D")
+  Revoked   Boolean?  @default(false, map: "DF__RefreshTo__Revok__5070F446")
+  Users     Users     @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_RefreshTokens_Users")
 
   @@index([ExpiresAt], map: "IX_RefreshTokens_ExpiresAt")
   @@index([Token], map: "IX_RefreshTokens_Token")
   @@index([UserId], map: "IX_RefreshTokens_UserId")
 }
 
-model Users_Auth {
-  Id            String          @id(map: "PK__Users_Au__3214EC07B8A9ED5C") @default(dbgenerated("newid()"), map: "DF__Users_Auth__Id__44FF419A") @db.UniqueIdentifier
+model Users {
+  Id            String          @id(map: "PK__Users_Au__3214EC07B8A9ED5C") @default(dbgenerated("newid()"), map: "DF__Users__Id__44FF419A") @db.UniqueIdentifier
   Username      String          @unique(map: "UQ__Users_Au__536C85E4E9CA6594") @db.NVarChar(50)
-  Email         String          @unique(map: "UQ__Users_Au__A9D1053415A93ABD") @db.NVarChar(255)
+  Email         String?         @db.NVarChar(255)
   PasswordHash  String          @db.NVarChar(255)
-  Role          String          @default("user", map: "DF__Users_Auth__Role__45F365D3") @db.NVarChar(20)
+  Role          String          @default("user", map: "DF__Users__Role__45F365D3") @db.NVarChar(20)
   IsActive      Boolean?        @default(true, map: "DF__Users_Aut__IsAct__46E78A0C")
   EmailVerified Boolean?        @default(false, map: "DF__Users_Aut__Email__47DBAE45")
   CreatedAt     DateTime?       @default(now(), map: "DF__Users_Aut__Creat__48CFD27E")
   UpdatedAt     DateTime?       @default(now(), map: "DF__Users_Aut__Updat__49C3F6B7")
   LastLogin     DateTime?
+  Phone         String?         @db.NVarChar(20)
+  Name          String?         @db.NVarChar(100)
+  Address       String?         @db.NVarChar(255)
+  Orders        Orders[]
   RefreshTokens RefreshTokens[]
 
-  @@index([Email], map: "IX_Users_Auth_Email")
-  @@index([Role], map: "IX_Users_Auth_Role")
-  @@index([Username], map: "IX_Users_Auth_Username")
+  @@index([Email], map: "IX_Users_Email")
+  @@index([Role], map: "IX_Users_Role")
+  @@index([Username], map: "IX_Users_Username")
+  @@map("Users")
 }

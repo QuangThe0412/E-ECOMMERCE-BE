@@ -11,18 +11,17 @@ import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import productRoutes from './routes/productRoutes';
 import orderRoutes from './routes/orderRoutes';
-import customerRoutes from './routes/customerRoutes';
 
 // Load environment variables
 dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:8080';
+const CORS_URL = process.env.CORS_URL || 'http://localhost:8080';
 
 // CORS configuration
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: CORS_URL,
   credentials: true
 }));
 
@@ -54,7 +53,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/customers', customerRoutes);
 
 // Error handler middleware
 app.use(errorHandler);
