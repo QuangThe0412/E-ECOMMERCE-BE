@@ -250,6 +250,72 @@ const options: Options = {
             },
           },
         },
+        Banner: {
+          type: 'object',
+          required: ['Title', 'Image'],
+          properties: {
+            Id: {
+              type: 'integer',
+              description: 'Banner ID',
+              example: 1,
+            },
+            Title: {
+              type: 'string',
+              description: 'Banner title',
+              example: 'Bộ Sưu Tập Mùa Hè 2025',
+            },
+            Subtitle: {
+              type: 'string',
+              description: 'Banner subtitle',
+              example: 'Thời trang nhẹ nhàng, thoải mái cho mùa hè sôi động',
+            },
+            Description: {
+              type: 'string',
+              description: 'Banner description',
+              example: 'Khám phá những thiết kế mới nhất với chất liệu thoáng mát',
+            },
+            Image: {
+              type: 'string',
+              description: 'Banner image URL',
+              example: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b',
+            },
+            ButtonText: {
+              type: 'string',
+              description: 'Button text',
+              example: 'Khám Phá Ngay',
+            },
+            ButtonLink: {
+              type: 'string',
+              description: 'Button link URL',
+              example: '/products?category=Áo',
+            },
+            BackgroundColor: {
+              type: 'string',
+              description: 'Background gradient color classes',
+              example: 'from-blue-500 to-purple-600',
+            },
+            IsActive: {
+              type: 'boolean',
+              description: 'Banner active status',
+              example: true,
+            },
+            DisplayOrder: {
+              type: 'integer',
+              description: 'Display order (lower numbers show first)',
+              example: 1,
+            },
+            CreatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Banner creation date',
+            },
+            UpdatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Banner last update date',
+            },
+          },
+        },
         SuccessResponse: {
           type: 'object',
           properties: {
