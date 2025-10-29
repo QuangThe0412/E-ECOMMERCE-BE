@@ -48,9 +48,11 @@ const productController = new ProductController();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PaginatedResponse'
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Products']
+   #swagger.description = 'Get all products with pagination' */
 router.get('/', productController.getAllProducts);
 
 /**
@@ -86,9 +88,11 @@ router.get('/', productController.getAllProducts);
  *         description: Product ID is required
  *       404:
  *         description: Product not found
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Products']
+   #swagger.description = 'Get product by ID' */
 router.get('/:id', productController.getProductById);
 
 /**
@@ -145,9 +149,11 @@ router.get('/:id', productController.getProductById);
  *                   $ref: '#/components/schemas/Product'
  *       400:
  *         description: Validation error
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Products']
+   #swagger.description = 'Create new product (Admin only)' */
 router.post('/', productController.createProduct);
 
 /**
@@ -190,9 +196,11 @@ router.post('/', productController.createProduct);
  *         description: Product ID is required or validation error
  *       404:
  *         description: Product not found
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Products']
+   #swagger.description = 'Update product (Admin only)' */
 router.put('/:id', productController.updateProduct);
 
 /**
@@ -215,9 +223,11 @@ router.put('/:id', productController.updateProduct);
  *         description: Product ID is required
  *       404:
  *         description: Product not found
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Products']
+   #swagger.description = 'Delete product (Admin only)' */
 router.delete('/:id', productController.deleteProduct);
 
 export default router;

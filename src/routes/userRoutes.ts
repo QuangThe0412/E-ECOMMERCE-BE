@@ -45,6 +45,8 @@ const userController = new UserController();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
+/* #swagger.tags = ['Users']
+   #swagger.description = 'Get all users (Admin only)' */
 router.get('/', userController.getAllUsers);
 
 /**
@@ -80,9 +82,11 @@ router.get('/', userController.getAllUsers);
  *         description: User ID is required
  *       404:
  *         description: User not found
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Users']
+   #swagger.description = 'Get user by ID (Admin only)' */
 router.get('/:id', userController.getUserById);
 
 /**
@@ -135,9 +139,11 @@ router.get('/:id', userController.getUserById);
  *                   $ref: '#/components/schemas/User'
  *       400:
  *         description: Validation error
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Users']
+   #swagger.description = 'Create new user (Admin only)' */
 router.post('/', userController.createUser);
 
 /**
@@ -178,9 +184,11 @@ router.post('/', userController.createUser);
  *         description: User ID is required or validation error
  *       404:
  *         description: User not found
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Users']
+   #swagger.description = 'Update user information (Admin only)' */
 router.put('/:id', userController.updateUser);
 
 /**
@@ -203,9 +211,11 @@ router.put('/:id', userController.updateUser);
  *         description: User ID is required
  *       404:
  *         description: User not found
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Users']
+   #swagger.description = 'Delete user (Admin only)' */
 router.delete('/:id', userController.deleteUser);
 
 export default router;

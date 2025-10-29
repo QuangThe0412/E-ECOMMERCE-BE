@@ -4,7 +4,7 @@ import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler } from './middlewares/errorHandler';
 import { logger } from './utils/logger';
-import swaggerSpec from './config/swagger';
+import swaggerOutput from './config/swagger-output.json' assert { type: 'json' };
 
 // Import routes
 import authRoutes from './routes/authRoutes';
@@ -31,7 +31,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerOutput, {
   explorer: true,
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'E-Commerce API Documentation',
@@ -41,7 +41,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // Swagger JSON endpoint
 app.get('/api-docs.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
+  res.send(swaggerOutput);
 });
 
 // Health check

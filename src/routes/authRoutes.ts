@@ -68,9 +68,11 @@ const authController = new AuthController();
  *                           enum: [admin, user]
  *       401:
  *         description: Invalid credentials
- *       429:
- *         description: Too many login attempts
+       429:
+         description: Too many login attempts
  */
+/* #swagger.tags = ['Auth']
+   #swagger.description = 'User login with phone and password' */
 router.post('/login', loginRateLimiter, authController.login);
 
 /**
@@ -125,9 +127,11 @@ router.post('/login', loginRateLimiter, authController.login);
  *         description: Validation error
  *       409:
  *         description: Username or email already exists
- *       429:
- *         description: Too many registration attempts
+       429:
+         description: Too many registration attempts
  */
+/* #swagger.tags = ['Auth']
+   #swagger.description = 'Register new user account' */
 router.post('/register', registerRateLimiter, authController.register);
 
 /**
@@ -163,9 +167,11 @@ router.post('/register', registerRateLimiter, authController.register);
  *                           type: string
  *                         role:
  *                           type: string
- *       401:
- *         description: Token invalid or expired
+       401:
+         description: Token invalid or expired
  */
+/* #swagger.tags = ['Auth']
+   #swagger.description = 'Verify JWT token validity' */
 router.get('/verify', authController.verifyToken);
 
 /**
@@ -204,9 +210,11 @@ router.get('/verify', authController.verifyToken);
  *                       type: string
  *                     refreshToken:
  *                       type: string
- *       401:
- *         description: Refresh token invalid or expired
+       401:
+         description: Refresh token invalid or expired
  */
+/* #swagger.tags = ['Auth']
+   #swagger.description = 'Refresh access token using refresh token' */
 router.post('/refresh', authController.refreshToken);
 
 /**
@@ -244,6 +252,8 @@ router.post('/refresh', authController.refreshToken);
  *                   type: string
  *                   example: Đăng xuất thành công
  */
+/* #swagger.tags = ['Auth']
+   #swagger.description = 'Logout and invalidate refresh token' */
 router.post('/logout', authController.logout);
 
 /**
@@ -279,9 +289,11 @@ router.post('/logout', authController.logout);
  *                       type: string
  *                     role:
  *                       type: string
- *       401:
- *         description: Not authenticated
+       401:
+         description: Not authenticated
  */
+/* #swagger.tags = ['Auth']
+   #swagger.description = 'Get current authenticated user information' */
 router.get('/me', authController.getCurrentUser);
 
 export default router;

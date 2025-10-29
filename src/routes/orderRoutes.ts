@@ -44,9 +44,11 @@ const orderController = new OrderController();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/PaginatedResponse'
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Orders']
+   #swagger.description = 'Get all orders with pagination' */
 router.get('/', orderController.getAllOrders);
 
 /**
@@ -82,9 +84,11 @@ router.get('/', orderController.getAllOrders);
  *         description: Order ID is required
  *       404:
  *         description: Order not found
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Orders']
+   #swagger.description = 'Get order by ID' */
 router.get('/:id', orderController.getOrderById);
 
 /**
@@ -132,9 +136,11 @@ router.get('/:id', orderController.getOrderById);
  *                   $ref: '#/components/schemas/Order'
  *       400:
  *         description: Validation error
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Orders']
+   #swagger.description = 'Create new order' */
 router.post('/', orderController.createOrder);
 
 /**
@@ -173,6 +179,8 @@ router.post('/', orderController.createOrder);
  *       500:
  *         description: Internal server error
  */
+/* #swagger.tags = ['Orders']
+   #swagger.description = 'Update order status (Admin only)' */
 router.put('/:id/status', orderController.updateOrderStatus);
 
 /**
@@ -195,9 +203,11 @@ router.put('/:id/status', orderController.updateOrderStatus);
  *         description: Order ID is required
  *       404:
  *         description: Order not found
- *       500:
- *         description: Internal server error
+       500:
+         description: Internal server error
  */
+/* #swagger.tags = ['Orders']
+   #swagger.description = 'Delete order (Admin only)' */
 router.delete('/:id', orderController.deleteOrder);
 
 export default router;
