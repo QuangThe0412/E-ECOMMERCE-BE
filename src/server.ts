@@ -4,7 +4,7 @@ import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { errorHandler } from './middlewares/errorHandler';
 import { logger } from './utils/logger';
-import swaggerOutput from './config/swagger-output.json' assert { type: 'json' };
+import swaggerSpec from './config/swagger';
 
 // Import routes
 import authRoutes from './routes/authRoutes';
@@ -12,6 +12,7 @@ import userRoutes from './routes/userRoutes';
 import productRoutes from './routes/productRoutes';
 import orderRoutes from './routes/orderRoutes';
 import bannerRoutes from './routes/bannerRoutes';
+import cartRoutes from './routes/cartRoutes';
 
 // Load environment variables
 dotenv.config();
@@ -31,7 +32,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerOutput, {
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   explorer: true,
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: 'E-Commerce API Documentation',
@@ -41,7 +42,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerOutput, {
 // Swagger JSON endpoint
 app.get('/api-docs.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerOutput);
+  res.send(swaggerSpec);
 });
 
 // Health check
@@ -55,6 +56,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Error handler middleware
 app.use(errorHandler);

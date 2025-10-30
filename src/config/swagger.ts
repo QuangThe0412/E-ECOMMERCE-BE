@@ -28,77 +28,74 @@ const options: Options = {
       },
     ],
     components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Enter JWT token',
+        },
+      },
       schemas: {
-        Customer: {
+        User: {
           type: 'object',
-          required: ['Name', 'Email'],
+          required: ['Username', 'Email', 'Password'],
           properties: {
             Id: {
-              type: 'integer',
-              description: 'Customer ID',
-              example: 1,
-            },
-            Name: {
               type: 'string',
-              description: 'Customer full name',
-              example: 'Nguyen Van A',
+              format: 'uuid',
+              description: 'User ID',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            Username: {
+              type: 'string',
+              description: 'Username',
+              example: 'admin',
             },
             Email: {
               type: 'string',
               format: 'email',
-              description: 'Customer email address',
-              example: 'nguyenvana@example.com',
-            },
-            Phone: {
-              type: 'string',
-              description: 'Customer phone number',
-              example: '0901234567',
-            },
-            Address: {
-              type: 'string',
-              description: 'Customer address',
-              example: '123 Nguyen Hue, HCM',
-            },
-          },
-        },
-        User: {
-          type: 'object',
-          required: ['email', 'name', 'password'],
-          properties: {
-            id: {
-              type: 'string',
-              description: 'User ID',
-              example: 'user-001',
-            },
-            email: {
-              type: 'string',
-              format: 'email',
               description: 'User email address',
-              example: 'user@example.com',
+              example: 'admin@example.com',
             },
-            name: {
-              type: 'string',
-              description: 'User full name',
-              example: 'John Doe',
-            },
-            password: {
+            Password: {
               type: 'string',
               format: 'password',
               description: 'User password (hashed)',
-              example: '123456',
+              example: 'admin123',
             },
-            role: {
+            Phone: {
+              type: 'string',
+              description: 'User phone number',
+              example: '0901234567',
+            },
+            Name: {
+              type: 'string',
+              description: 'User full name',
+              example: 'Nguyen Van A',
+            },
+            Address: {
+              type: 'string',
+              description: 'User address',
+              example: '123 Nguyen Hue, HCM',
+            },
+            Role: {
               type: 'string',
               description: 'User role',
               enum: ['user', 'admin'],
               example: 'user',
             },
-            createdAt: {
+            IsActive: {
+              type: 'boolean',
+              description: 'User active status',
+              example: true,
+            },
+            CreatedAt: {
               type: 'string',
               format: 'date-time',
               description: 'User creation date',
             },
-            updatedAt: {
+            UpdatedAt: {
               type: 'string',
               format: 'date-time',
               description: 'User last update date',
@@ -176,17 +173,18 @@ const options: Options = {
         },
         Order: {
           type: 'object',
-          required: ['CustomerId', 'Total'],
+          required: ['UserId', 'Total'],
           properties: {
             Id: {
               type: 'integer',
               description: 'Order ID',
               example: 1,
             },
-            CustomerId: {
-              type: 'integer',
-              description: 'Customer ID who placed the order',
-              example: 1,
+            UserId: {
+              type: 'string',
+              format: 'uuid',
+              description: 'User ID who placed the order',
+              example: '123e4567-e89b-12d3-a456-426614174000',
             },
             CreatedAt: {
               type: 'string',
@@ -203,8 +201,8 @@ const options: Options = {
             Status: {
               type: 'string',
               description: 'Order status',
-              enum: ['Pending', 'Processing', 'Completed', 'Cancelled'],
-              example: 'Pending',
+              enum: ['pending', 'processing', 'completed', 'cancelled'],
+              example: 'pending',
             },
             PaymentMethod: {
               type: 'string',
@@ -319,9 +317,9 @@ const options: Options = {
         SuccessResponse: {
           type: 'object',
           properties: {
-            status: {
-              type: 'string',
-              example: 'success',
+            success: {
+              type: 'boolean',
+              example: true,
             },
             message: {
               type: 'string',
@@ -336,36 +334,26 @@ const options: Options = {
         ErrorResponse: {
           type: 'object',
           properties: {
-            status: {
-              type: 'string',
-              example: 'error',
+            success: {
+              type: 'boolean',
+              example: false,
             },
             message: {
               type: 'string',
               example: 'Error message',
             },
-            errors: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  field: {
-                    type: 'string',
-                  },
-                  message: {
-                    type: 'string',
-                  },
-                },
-              },
+            error: {
+              type: 'string',
+              example: 'Error details',
             },
           },
         },
         PaginatedResponse: {
           type: 'object',
           properties: {
-            status: {
-              type: 'string',
-              example: 'success',
+            success: {
+              type: 'boolean',
+              example: true,
             },
             message: {
               type: 'string',
@@ -400,13 +388,114 @@ const options: Options = {
             },
           },
         },
-      },
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'Enter JWT token',
+        Cart: {
+          type: 'object',
+          properties: {
+            Id: {
+              type: 'string',
+              format: 'uuid',
+              description: 'Cart ID',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            UserId: {
+              type: 'string',
+              format: 'uuid',
+              description: 'User ID',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            CreatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Cart creation date',
+            },
+            UpdatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Cart last update date',
+            },
+          },
+        },
+        CartItem: {
+          type: 'object',
+          properties: {
+            Id: {
+              type: 'integer',
+              description: 'Cart item ID',
+              example: 1,
+            },
+            CartId: {
+              type: 'string',
+              format: 'uuid',
+              description: 'Cart ID',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            ProductId: {
+              type: 'integer',
+              description: 'Product ID',
+              example: 1,
+            },
+            Quantity: {
+              type: 'integer',
+              description: 'Product quantity',
+              example: 2,
+            },
+            CreatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Cart item creation date',
+            },
+            UpdatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Cart item last update date',
+            },
+            Products: {
+              $ref: '#/components/schemas/Product',
+            },
+          },
+        },
+        CartWithItems: {
+          type: 'object',
+          properties: {
+            Id: {
+              type: 'string',
+              format: 'uuid',
+              description: 'Cart ID',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            UserId: {
+              type: 'string',
+              format: 'uuid',
+              description: 'User ID',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            CreatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Cart creation date',
+            },
+            UpdatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Cart last update date',
+            },
+            CartItems: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/CartItem',
+              },
+            },
+            total: {
+              type: 'number',
+              description: 'Total cart amount',
+              example: 59980000,
+            },
+            itemCount: {
+              type: 'integer',
+              description: 'Total number of items in cart',
+              example: 5,
+            },
+          },
         },
       },
     },
@@ -416,7 +505,7 @@ const options: Options = {
       },
     ],
   },
-  apis: ['./src/routes/*.ts', './src/controllers/*.ts'], // Files containing annotations
+  apis: ['./src/routes/*.ts', './src/controllers/*.ts'],
 };
 
 const swaggerSpec = swaggerJsdoc(options);

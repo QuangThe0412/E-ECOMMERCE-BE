@@ -62,6 +62,7 @@ model Products {
   Colors        String?      @db.NVarChar(100)
   Sizes         String?      @db.NVarChar(100)
   OrderItems    OrderItems[]
+  CartItems     CartItems[]
 }
 
 model RefreshTokens {
@@ -94,6 +95,7 @@ model Users {
   Address       String?         @db.NVarChar(255)
   Orders        Orders[]
   RefreshTokens RefreshTokens[]
+  Carts         Carts[]
 
   @@index([Email], map: "IX_Users_Email")
   @@index([Role], map: "IX_Users_Role")
@@ -117,4 +119,30 @@ model Banners {
 
   @@index([DisplayOrder], map: "IX_Banners_DisplayOrder")
   @@index([IsActive], map: "IX_Banners_IsActive")
+}
+
+model Carts {
+  Id        String      @id @default(dbgenerated("newid()")) @db.UniqueIdentifier
+  UserId    String      @unique @db.UniqueIdentifier
+  CreatedAt DateTime    @default(now()) @db.DateTime
+  UpdatedAt DateTime    @default(now()) @updatedAt @db.DateTime
+  Users     Users       @relation(fields: [UserId], references: [Id], onDelete: Cascade)
+  CartItems CartItems[]
+
+  @@index([UserId])
+}
+
+model CartItems {
+  Id        Int      @id @default(autoincrement())
+  CartId    String   @db.UniqueIdentifier
+  ProductId Int
+  Quantity  Int      @default(1)
+  CreatedAt DateTime @default(now()) @db.DateTime
+  UpdatedAt DateTime @default(now()) @updatedAt @db.DateTime
+  Carts     Carts    @relation(fields: [CartId], references: [Id], onDelete: Cascade)
+  Products  Products @relation(fields: [ProductId], references: [Id], onDelete: Cascade)
+
+  @@unique([CartId, ProductId])
+  @@index([CartId])
+  @@index([ProductId])
 }

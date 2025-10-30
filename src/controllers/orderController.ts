@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { OrderService } from '../services/orderService';
 import { ApiResponse } from '../utils/response';
 import { asyncHandler } from '../middlewares/errorHandler';
+import type { AuthRequest } from '../middlewares/authMiddleware';
 
 export class OrderController {
   private orderService: OrderService;
@@ -41,8 +42,43 @@ export class OrderController {
     return ApiResponse.success(res, order, 'Order retrieved successfully');
   });
 
-  createOrder = asyncHandler(async (req: Request, res: Response) => {
-    const orderData = req.body;
+  getUserOrders = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return ApiResponse.error(res, 'Unauthorized', 401);
+    }
+
+    const { page = 1, limit = 10 } = req.query;
+
+    const result = await this.orderService.getUserOrders(
+      userId,
+      Number(page),
+      Number(limit)
+    );
+
+    return ApiResponse.paginated(
+      res,
+      result.data,
+      Number(page),
+      Number(limit),
+      result.total,
+      'User orders retrieved successfully'
+    );
+  });
+
+  createOrder = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return ApiResponse.error(res, 'Unauthorized', 401);
+    }
+
+    const orderData = {
+      ...req.body,
+      UserId: userId,
+    };
+
     const order = await this.orderService.createOrder(orderData);
     
     return ApiResponse.success(res, order, 'Order created successfully', 201);

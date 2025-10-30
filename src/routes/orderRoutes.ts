@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { OrderController } from '../controllers/orderController';
-// import { authenticate, authorize } from '../middlewares/authMiddleware';
+import { authenticate } from '../middlewares/authMiddleware';
 
 const router = Router();
 const orderController = new OrderController();
@@ -50,6 +50,41 @@ const orderController = new OrderController();
 /* #swagger.tags = ['Orders']
    #swagger.description = 'Get all orders with pagination' */
 router.get('/', orderController.getAllOrders);
+
+/**
+ * @swagger
+ * /api/orders/user:
+ *   get:
+ *     summary: Get current user's orders
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: User orders retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedResponse'
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/user', authenticate, orderController.getUserOrders);
 
 /**
  * @swagger
@@ -141,7 +176,7 @@ router.get('/:id', orderController.getOrderById);
  */
 /* #swagger.tags = ['Orders']
    #swagger.description = 'Create new order' */
-router.post('/', orderController.createOrder);
+router.post('/', authenticate, orderController.createOrder);
 
 /**
  * @swagger

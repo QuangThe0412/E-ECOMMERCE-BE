@@ -38,5 +38,11 @@ coverage/
 # Temporary files
 tmp/
 temp/
+test-*.ts
 
+# Prisma
 /src/generated/prisma
+.prisma/
+
+# TypeScript
+*.tsbuildinfo

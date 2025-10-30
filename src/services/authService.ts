@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../lib/prisma';
+import prisma from '../lib/prisma';
 import { AppError } from '../middlewares/errorHandler';
 import type {
   User,
@@ -25,7 +25,7 @@ export class AuthService {
     const user: User = {
       id: userRecord.Id,
       username: userRecord.Username,
-      email: userRecord.Email,
+      email: userRecord.Email || '',
       passwordHash: userRecord.PasswordHash,
       role: userRecord.Role as UserRole,
       isActive: userRecord.IsActive ?? true,
