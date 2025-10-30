@@ -1,246 +1,242 @@
--- Create Database
--- CREATE DATABASE ECommerceDB;
--- GO
+-- DROP SCHEMA dbo;
 
--- USE ECommerceDB;
--- GO
+CREATE SCHEMA dbo;
+-- ECommerceDB.dbo.Banners definition
 
--- =============================================
--- Users Table
--- =============================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Users')
-BEGIN
-    CREATE TABLE Users (
-        Id NVARCHAR(50) PRIMARY KEY DEFAULT NEWID(),
-        Email NVARCHAR(255) UNIQUE NOT NULL,
-        Name NVARCHAR(255) NOT NULL,
-        Password NVARCHAR(255) NOT NULL,
-        Role NVARCHAR(50) DEFAULT 'user',
-        PhoneNumber NVARCHAR(20),
-        Address NVARCHAR(500),
-        IsActive BIT DEFAULT 1,
-        CreatedAt DATETIME DEFAULT GETDATE(),
-        UpdatedAt DATETIME,
-        CONSTRAINT CHK_Email CHECK (Email LIKE '%@%.%')
-    );
-END
-GO
+-- Drop table
 
--- =============================================
--- Categories Table
--- =============================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Categories')
-BEGIN
-    CREATE TABLE Categories (
-        Id NVARCHAR(50) PRIMARY KEY DEFAULT NEWID(),
-        Name NVARCHAR(255) NOT NULL,
-        Description NVARCHAR(MAX),
-        ImageUrl NVARCHAR(500),
-        ParentId NVARCHAR(50),
-        IsActive BIT DEFAULT 1,
-        CreatedAt DATETIME DEFAULT GETDATE(),
-        UpdatedAt DATETIME,
-        FOREIGN KEY (ParentId) REFERENCES Categories(Id)
-    );
-END
-GO
+-- DROP TABLE ECommerceDB.dbo.Banners;
 
--- =============================================
--- Products Table
--- =============================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Products')
-BEGIN
-    CREATE TABLE Products (
-        Id NVARCHAR(50) PRIMARY KEY DEFAULT NEWID(),
-        Name NVARCHAR(255) NOT NULL,
-        Description NVARCHAR(MAX),
-        Price DECIMAL(18, 2) NOT NULL,
-        ComparePrice DECIMAL(18, 2),
-        Cost DECIMAL(18, 2),
-        Stock INT DEFAULT 0,
-        SKU NVARCHAR(100) UNIQUE,
-        CategoryId NVARCHAR(50),
-        ImageUrl NVARCHAR(500),
-        Images NVARCHAR(MAX), -- JSON array of image URLs
-        IsActive BIT DEFAULT 1,
-        IsFeatured BIT DEFAULT 0,
-        CreatedAt DATETIME DEFAULT GETDATE(),
-        UpdatedAt DATETIME,
-        FOREIGN KEY (CategoryId) REFERENCES Categories(Id),
-        CONSTRAINT CHK_Price CHECK (Price >= 0),
-        CONSTRAINT CHK_Stock CHECK (Stock >= 0)
-    );
-END
-GO
+CREATE TABLE ECommerceDB.dbo.Banners (
+	Id int IDENTITY(1,1) NOT NULL,
+	Title nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	Subtitle nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Description nvarchar(1000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Image nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	ButtonText nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	ButtonLink nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	BackgroundColor nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	IsActive bit DEFAULT 1 NULL,
+	DisplayOrder int DEFAULT 0 NULL,
+	CreatedAt datetime DEFAULT getdate() NULL,
+	UpdatedAt datetime DEFAULT getdate() NULL,
+	CONSTRAINT PK__Banners__3214EC079771EA19 PRIMARY KEY (Id)
+);
+ CREATE NONCLUSTERED INDEX IX_Banners_DisplayOrder ON ECommerceDB.dbo.Banners (  DisplayOrder ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_Banners_IsActive ON ECommerceDB.dbo.Banners (  IsActive ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
 
--- =============================================
--- Orders Table
--- =============================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Orders')
-BEGIN
-    CREATE TABLE Orders (
-        Id NVARCHAR(50) PRIMARY KEY DEFAULT NEWID(),
-        UserId NVARCHAR(50) NOT NULL,
-        OrderNumber NVARCHAR(50) UNIQUE NOT NULL,
-        SubTotal DECIMAL(18, 2) NOT NULL,
-        ShippingFee DECIMAL(18, 2) DEFAULT 0,
-        Tax DECIMAL(18, 2) DEFAULT 0,
-        Discount DECIMAL(18, 2) DEFAULT 0,
-        TotalAmount DECIMAL(18, 2) NOT NULL,
-        Status NVARCHAR(50) DEFAULT 'pending',
-        PaymentMethod NVARCHAR(100),
-        PaymentStatus NVARCHAR(50) DEFAULT 'pending',
-        ShippingAddress NVARCHAR(MAX), -- JSON object
-        BillingAddress NVARCHAR(MAX), -- JSON object
-        Notes NVARCHAR(MAX),
-        CreatedAt DATETIME DEFAULT GETDATE(),
-        UpdatedAt DATETIME,
-        CompletedAt DATETIME,
-        FOREIGN KEY (UserId) REFERENCES Users(Id),
-        CONSTRAINT CHK_Status CHECK (Status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')),
-        CONSTRAINT CHK_PaymentStatus CHECK (PaymentStatus IN ('pending', 'paid', 'failed', 'refunded'))
-    );
-END
-GO
 
--- =============================================
--- OrderItems Table
--- =============================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'OrderItems')
-BEGIN
-    CREATE TABLE OrderItems (
-        Id NVARCHAR(50) PRIMARY KEY DEFAULT NEWID(),
-        OrderId NVARCHAR(50) NOT NULL,
-        ProductId NVARCHAR(50) NOT NULL,
-        ProductName NVARCHAR(255) NOT NULL,
-        ProductSKU NVARCHAR(100),
-        Quantity INT NOT NULL,
-        Price DECIMAL(18, 2) NOT NULL,
-        Discount DECIMAL(18, 2) DEFAULT 0,
-        TotalPrice DECIMAL(18, 2) NOT NULL,
-        CreatedAt DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (OrderId) REFERENCES Orders(Id) ON DELETE CASCADE,
-        FOREIGN KEY (ProductId) REFERENCES Products(Id),
-        CONSTRAINT CHK_Quantity CHECK (Quantity > 0)
-    );
-END
-GO
+-- ECommerceDB.dbo.LoginAttempts definition
 
--- =============================================
--- Carts Table
--- =============================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Carts')
-BEGIN
-    CREATE TABLE Carts (
-        Id NVARCHAR(50) PRIMARY KEY DEFAULT NEWID(),
-        UserId NVARCHAR(50) NOT NULL,
-        ProductId NVARCHAR(50) NOT NULL,
-        Quantity INT NOT NULL DEFAULT 1,
-        CreatedAt DATETIME DEFAULT GETDATE(),
-        UpdatedAt DATETIME,
-        FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-        FOREIGN KEY (ProductId) REFERENCES Products(Id) ON DELETE CASCADE,
-        CONSTRAINT CHK_Cart_Quantity CHECK (Quantity > 0),
-        CONSTRAINT UQ_User_Product UNIQUE (UserId, ProductId)
-    );
-END
-GO
+-- Drop table
 
--- =============================================
--- Reviews Table
--- =============================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Reviews')
-BEGIN
-    CREATE TABLE Reviews (
-        Id NVARCHAR(50) PRIMARY KEY DEFAULT NEWID(),
-        UserId NVARCHAR(50) NOT NULL,
-        ProductId NVARCHAR(50) NOT NULL,
-        OrderId NVARCHAR(50),
-        Rating INT NOT NULL,
-        Title NVARCHAR(255),
-        Comment NVARCHAR(MAX),
-        IsVerified BIT DEFAULT 0,
-        IsApproved BIT DEFAULT 0,
-        CreatedAt DATETIME DEFAULT GETDATE(),
-        UpdatedAt DATETIME,
-        FOREIGN KEY (UserId) REFERENCES Users(Id),
-        FOREIGN KEY (ProductId) REFERENCES Products(Id) ON DELETE CASCADE,
-        FOREIGN KEY (OrderId) REFERENCES Orders(Id),
-        CONSTRAINT CHK_Rating CHECK (Rating >= 1 AND Rating <= 5)
-    );
-END
-GO
+-- DROP TABLE ECommerceDB.dbo.LoginAttempts;
 
--- =============================================
--- Wishlist Table
--- =============================================
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Wishlist')
-BEGIN
-    CREATE TABLE Wishlist (
-        Id NVARCHAR(50) PRIMARY KEY DEFAULT NEWID(),
-        UserId NVARCHAR(50) NOT NULL,
-        ProductId NVARCHAR(50) NOT NULL,
-        CreatedAt DATETIME DEFAULT GETDATE(),
-        FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-        FOREIGN KEY (ProductId) REFERENCES Products(Id) ON DELETE CASCADE,
-        CONSTRAINT UQ_User_Product_Wishlist UNIQUE (UserId, ProductId)
-    );
-END
-GO
+CREATE TABLE ECommerceDB.dbo.LoginAttempts (
+	Id uniqueidentifier DEFAULT newid() NOT NULL,
+	IpAddress nvarchar(45) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	Username nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Success bit NOT NULL,
+	AttemptedAt datetime DEFAULT getdate() NULL,
+	CONSTRAINT PK__LoginAtt__3214EC0797A7CD8F PRIMARY KEY (Id)
+);
+ CREATE NONCLUSTERED INDEX IX_LoginAttempts_AttemptedAt ON ECommerceDB.dbo.LoginAttempts (  AttemptedAt ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_LoginAttempts_IpAddress ON ECommerceDB.dbo.LoginAttempts (  IpAddress ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_LoginAttempts_Username ON ECommerceDB.dbo.LoginAttempts (  Username ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
 
--- =============================================
--- Create Indexes for better performance
--- =============================================
-CREATE INDEX IX_Users_Email ON Users(Email);
-CREATE INDEX IX_Products_CategoryId ON Products(CategoryId);
-CREATE INDEX IX_Products_IsActive ON Products(IsActive);
-CREATE INDEX IX_Orders_UserId ON Orders(UserId);
-CREATE INDEX IX_Orders_Status ON Orders(Status);
-CREATE INDEX IX_Orders_CreatedAt ON Orders(CreatedAt);
-CREATE INDEX IX_OrderItems_OrderId ON OrderItems(OrderId);
-CREATE INDEX IX_OrderItems_ProductId ON OrderItems(ProductId);
-CREATE INDEX IX_Reviews_ProductId ON Reviews(ProductId);
-CREATE INDEX IX_Reviews_UserId ON Reviews(UserId);
-GO
 
--- =============================================
--- Insert Sample Data (Optional)
--- =============================================
+-- ECommerceDB.dbo.Products definition
 
--- Insert sample categories
-INSERT INTO Categories (Id, Name, Description) VALUES
-('cat-001', 'Electronics', 'Electronic devices and accessories'),
-('cat-002', 'Fashion', 'Clothing and fashion accessories'),
-('cat-003', 'Home & Garden', 'Home decor and gardening items'),
-('cat-004', 'Books', 'Books and publications'),
-('cat-005', 'Sports', 'Sports equipment and accessories');
-GO
+-- Drop table
 
--- Insert sample users (password: 123456 - should be hashed in production)
-INSERT INTO Users (Id, Email, Name, Password, Role) VALUES
-('user-001', 'admin@example.com', 'Admin User', '$2a$10$hashed_password_here', 'admin'),
-('user-002', 'john.doe@example.com', 'John Doe', '$2a$10$hashed_password_here', 'user'),
-('user-003', 'jane.smith@example.com', 'Jane Smith', '$2a$10$hashed_password_here', 'user');
-GO
+-- DROP TABLE ECommerceDB.dbo.Products;
 
--- Insert sample products
-INSERT INTO Products (Id, Name, Description, Price, Stock, CategoryId, SKU) VALUES
-('prod-001', 'Smartphone X', 'Latest smartphone with advanced features', 599.99, 50, 'cat-001', 'SPH-X-001'),
-('prod-002', 'Laptop Pro', 'High-performance laptop for professionals', 1299.99, 30, 'cat-001', 'LAP-PRO-001'),
-('prod-003', 'T-Shirt Classic', 'Comfortable cotton t-shirt', 29.99, 100, 'cat-002', 'TSH-CLS-001'),
-('prod-004', 'Running Shoes', 'Professional running shoes', 89.99, 75, 'cat-005', 'SHO-RUN-001'),
-('prod-005', 'Garden Tool Set', 'Complete set of garden tools', 149.99, 40, 'cat-003', 'GRD-SET-001');
-GO
+CREATE TABLE ECommerceDB.dbo.Products (
+	Id int IDENTITY(1,1) NOT NULL,
+	Name nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	Description nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Image] nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Category nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Price decimal(18,2) NOT NULL,
+	OriginalPrice decimal(18,2) NULL,
+	Stock int NOT NULL,
+	Rating float NULL,
+	Reviews int NULL,
+	Colors nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Sizes nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	CONSTRAINT PK__Products__3214EC07BE189123 PRIMARY KEY (Id)
+);
 
--- Insert sample order
-INSERT INTO Orders (Id, UserId, OrderNumber, SubTotal, TotalAmount, Status) VALUES
-('order-001', 'user-002', 'ORD-20240001', 629.98, 629.98, 'pending');
-GO
 
--- Insert sample order items
-INSERT INTO OrderItems (OrderId, ProductId, ProductName, ProductSKU, Quantity, Price, TotalPrice) VALUES
-('order-001', 'prod-001', 'Smartphone X', 'SPH-X-001', 1, 599.99, 599.99),
-('order-001', 'prod-003', 'T-Shirt Classic', 'TSH-CLS-001', 1, 29.99, 29.99);
-GO
+-- ECommerceDB.dbo.Users definition
 
-PRINT 'Database schema created successfully!';
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.Users;
+
+CREATE TABLE ECommerceDB.dbo.Users (
+	Id uniqueidentifier DEFAULT newid() NOT NULL,
+	Username nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	Email nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	PasswordHash nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[Role] nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS DEFAULT 'user' NOT NULL,
+	IsActive bit DEFAULT 1 NULL,
+	EmailVerified bit DEFAULT 0 NULL,
+	CreatedAt datetime DEFAULT getdate() NULL,
+	UpdatedAt datetime DEFAULT getdate() NULL,
+	LastLogin datetime NULL,
+	Phone nvarchar(20) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Name nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Address nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	CONSTRAINT PK__Users__3214EC07E459DFD3 PRIMARY KEY (Id),
+	CONSTRAINT UQ__Users__536C85E4907E9CE7 UNIQUE (Username)
+);
+ CREATE NONCLUSTERED INDEX IX_Users_Email ON ECommerceDB.dbo.Users (  Email ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_Users_Role ON ECommerceDB.dbo.Users (  Role ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_Users_Username ON ECommerceDB.dbo.Users (  Username ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+
+
+-- ECommerceDB.dbo.Carts definition
+
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.Carts;
+
+CREATE TABLE ECommerceDB.dbo.Carts (
+	Id uniqueidentifier DEFAULT newid() NOT NULL,
+	UserId uniqueidentifier NOT NULL,
+	CreatedAt datetime DEFAULT getdate() NOT NULL,
+	UpdatedAt datetime DEFAULT getdate() NOT NULL,
+	CONSTRAINT Carts_UserId_key UNIQUE (UserId),
+	CONSTRAINT Carts_pkey PRIMARY KEY (Id),
+	CONSTRAINT Carts_UserId_fkey FOREIGN KEY (UserId) REFERENCES ECommerceDB.dbo.Users(Id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+ CREATE NONCLUSTERED INDEX Carts_UserId_idx ON ECommerceDB.dbo.Carts (  UserId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+
+
+-- ECommerceDB.dbo.Orders definition
+
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.Orders;
+
+CREATE TABLE ECommerceDB.dbo.Orders (
+	Id int IDENTITY(1,1) NOT NULL,
+	UserId uniqueidentifier NOT NULL,
+	CreatedAt datetime DEFAULT getdate() NOT NULL,
+	Total decimal(18,2) DEFAULT 0 NOT NULL,
+	Status nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS DEFAULT 'pending' NOT NULL,
+	PaymentMethod nvarchar(50) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Notes nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	CONSTRAINT PK__Orders__3214EC0740795220 PRIMARY KEY (Id),
+	CONSTRAINT FK_Orders_Users FOREIGN KEY (UserId) REFERENCES ECommerceDB.dbo.Users(Id) ON DELETE CASCADE
+);
+ CREATE NONCLUSTERED INDEX IX_Orders_CreatedAt ON ECommerceDB.dbo.Orders (  CreatedAt ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_Orders_Status ON ECommerceDB.dbo.Orders (  Status ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_Orders_UserId ON ECommerceDB.dbo.Orders (  UserId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+
+
+-- ECommerceDB.dbo.RefreshTokens definition
+
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.RefreshTokens;
+
+CREATE TABLE ECommerceDB.dbo.RefreshTokens (
+	Id uniqueidentifier DEFAULT newid() NOT NULL,
+	UserId uniqueidentifier NOT NULL,
+	Token nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	ExpiresAt datetime NOT NULL,
+	CreatedAt datetime DEFAULT getdate() NULL,
+	Revoked bit DEFAULT 0 NULL,
+	CONSTRAINT PK__RefreshT__3214EC07BC7DB2DA PRIMARY KEY (Id),
+	CONSTRAINT UQ__RefreshT__1EB4F81784C4A03A UNIQUE (Token),
+	CONSTRAINT FK_RefreshTokens_Users FOREIGN KEY (UserId) REFERENCES ECommerceDB.dbo.Users(Id) ON DELETE CASCADE
+);
+ CREATE NONCLUSTERED INDEX IX_RefreshTokens_ExpiresAt ON ECommerceDB.dbo.RefreshTokens (  ExpiresAt ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_RefreshTokens_Token ON ECommerceDB.dbo.RefreshTokens (  Token ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_RefreshTokens_UserId ON ECommerceDB.dbo.RefreshTokens (  UserId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+
+
+-- ECommerceDB.dbo.CartItems definition
+
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.CartItems;
+
+CREATE TABLE ECommerceDB.dbo.CartItems (
+	Id int IDENTITY(1,1) NOT NULL,
+	CartId uniqueidentifier NOT NULL,
+	ProductId int NOT NULL,
+	Quantity int DEFAULT 1 NOT NULL,
+	CreatedAt datetime DEFAULT getdate() NOT NULL,
+	UpdatedAt datetime DEFAULT getdate() NOT NULL,
+	CONSTRAINT CartItems_CartId_ProductId_key UNIQUE (CartId,ProductId),
+	CONSTRAINT CartItems_pkey PRIMARY KEY (Id),
+	CONSTRAINT CartItems_CartId_fkey FOREIGN KEY (CartId) REFERENCES ECommerceDB.dbo.Carts(Id) ON DELETE CASCADE ON UPDATE CASCADE,
+	CONSTRAINT CartItems_ProductId_fkey FOREIGN KEY (ProductId) REFERENCES ECommerceDB.dbo.Products(Id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+ CREATE NONCLUSTERED INDEX CartItems_CartId_idx ON ECommerceDB.dbo.CartItems (  CartId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX CartItems_ProductId_idx ON ECommerceDB.dbo.CartItems (  ProductId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+
+
+-- ECommerceDB.dbo.OrderItems definition
+
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.OrderItems;
+
+CREATE TABLE ECommerceDB.dbo.OrderItems (
+	Id int IDENTITY(1,1) NOT NULL,
+	OrderId int NOT NULL,
+	ProductId int NOT NULL,
+	Quantity int DEFAULT 1 NOT NULL,
+	Price decimal(18,2) NOT NULL,
+	CONSTRAINT PK__OrderIte__3214EC076E51C2AD PRIMARY KEY (Id),
+	CONSTRAINT FK_OrderItems_Orders FOREIGN KEY (OrderId) REFERENCES ECommerceDB.dbo.Orders(Id) ON DELETE CASCADE,
+	CONSTRAINT FK_OrderItems_Products FOREIGN KEY (ProductId) REFERENCES ECommerceDB.dbo.Products(Id) ON DELETE CASCADE
+);
+ CREATE NONCLUSTERED INDEX IX_OrderItems_OrderId ON ECommerceDB.dbo.OrderItems (  OrderId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_OrderItems_ProductId ON ECommerceDB.dbo.OrderItems (  ProductId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ALTER TABLE ECommerceDB.dbo.OrderItems WITH NOCHECK ADD CONSTRAINT CK_OrderItems_Quantity CHECK (([Quantity]>(0)));
+ALTER TABLE ECommerceDB.dbo.OrderItems WITH NOCHECK ADD CONSTRAINT CK_OrderItems_Price CHECK (([Price]>=(0)));
+
+
