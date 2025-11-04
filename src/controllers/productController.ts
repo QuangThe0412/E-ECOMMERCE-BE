@@ -11,13 +11,13 @@ export class ProductController {
   }
 
   getAllProducts = asyncHandler(async (req: Request, res: Response) => {
-    const { page = 1, limit = 10, search, category } = req.query;
+    const { page = 1, limit = 10, search, subCategoryId } = req.query;
     
     const result = await this.productService.getAllProducts(
       Number(page),
       Number(limit),
       search as string,
-      category as string
+      subCategoryId ? Number(subCategoryId) : undefined
     );
     
     return ApiResponse.paginated(
@@ -40,6 +40,30 @@ export class ProductController {
     const product = await this.productService.getProductById(Number(id));
     
     return ApiResponse.success(res, product, 'Product retrieved successfully');
+  });
+
+  getProductsBySubCategory = asyncHandler(async (req: Request, res: Response) => {
+    const { subCategoryId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    if (!subCategoryId) {
+      return ApiResponse.error(res, 'SubCategory ID is required', 400);
+    }
+
+    const result = await this.productService.getProductsBySubCategory(
+      Number(subCategoryId),
+      Number(page),
+      Number(limit)
+    );
+
+    return ApiResponse.paginated(
+      res,
+      result.data,
+      Number(page),
+      Number(limit),
+      result.total,
+      'Products by subcategory retrieved successfully'
+    );
   });
 
   createProduct = asyncHandler(async (req: Request, res: Response) => {

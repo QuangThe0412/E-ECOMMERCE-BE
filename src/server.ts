@@ -10,12 +10,16 @@ import swaggerSpec from './config/swagger';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
 import productRoutes from './routes/productRoutes';
+import categoryRoutes from './routes/categoryRoutes';
+import subCategoryRoutes from './routes/subCategoryRoutes';
 import orderRoutes from './routes/orderRoutes';
 import bannerRoutes from './routes/bannerRoutes';
 import cartRoutes from './routes/cartRoutes';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables based on NODE_ENV
+const envFile = process.env.NODE_ENV === 'development' ? '.env.dev' : '.env';
+dotenv.config({ path: envFile });
+logger.info(`Loading environment from: ${envFile}`);
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -31,19 +35,27 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  explorer: true,
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'E-Commerce API Documentation',
-}));
+// Swagger Documentation - Only in development
+if (process.env.NODE_ENV === 'development') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'E-Commerce API Documentation',
+  }));
 
-
-// Swagger JSON endpoint
-app.get('/api-docs.json', (_req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});
+  // Swagger JSON endpoint
+  app.get('/api-docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+  
+  logger.info('Swagger documentation enabled at /api-docs');
+} else {
+  // Disable Swagger in production
+  app.use('/api-docs', (_req, res) => {
+    res.status(403).json({ message: 'Swagger is disabled in production' });
+  });
+}
 
 // Health check
 app.get('/health', (_req, res) => {
@@ -53,6 +65,8 @@ app.get('/health', (_req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/subcategories', subCategoryRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/banners', bannerRoutes);
@@ -68,9 +82,16 @@ const startServer = async () => {
     
     app.listen(PORT, () => {
       logger.info(`Server is running on port ${PORT}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'production'}`);
+      
       console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
-      console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-      console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json\n`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+        console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json`);
+      }
+      console.log();
     });
   } catch (error) {
     logger.error('Failed to start server:', error);

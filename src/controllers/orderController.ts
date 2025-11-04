@@ -91,10 +91,14 @@ export class OrderController {
     if (!id) {
       return ApiResponse.error(res, 'Order ID is required', 400);
     }
+
+    if (!status) {
+      return ApiResponse.error(res, 'Status is required', 400);
+    }
     
     const order = await this.orderService.updateOrderStatus(Number(id), status);
     
-    return ApiResponse.success(res, order, 'Order status updated successfully');
+    return ApiResponse.success(res, order, 'Order status updated successfully', 200);
   });
 
   deleteOrder = asyncHandler(async (req: Request, res: Response) => {

@@ -91,6 +91,59 @@ router.get('/', productController.getAllProducts);
        500:
          description: Internal server error
  */
+router.get('/:id', productController.getProductById);
+
+/**
+ * @swagger
+ * /api/products/by-subcategory/{subCategoryId}:
+ *   get:
+ *     summary: Get products by subcategory
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: subCategoryId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: SubCategory ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Products retrieved successfully
+ *       404:
+ *         description: SubCategory not found
+ */
+router.get('/by-subcategory/:subCategoryId', productController.getProductsBySubCategory);
+
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   get:
+ *     summary: Get product by ID
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Product details
+ *       404:
+ *         description: Product not found
+       500:
+         description: Internal server error
+ */
 /* #swagger.tags = ['Products']
    #swagger.description = 'Get product by ID' */
 router.get('/:id', productController.getProductById);

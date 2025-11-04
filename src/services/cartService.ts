@@ -29,18 +29,41 @@ export class CartService {
   }
 
   /**
-   * Get user's cart with items
+   * Get user's cart with items and full product info including category hierarchy
    */
   async getCart(userId: string): Promise<CartWithItems> {
     try {
       const cart = await this.getOrCreateCart(userId);
 
-      const cartWithItems = await prisma.carts.findUnique({
+      const cartWithItems = await (prisma as any).carts.findUnique({
         where: { Id: cart.Id },
         include: {
           CartItems: {
             include: {
-              Products: true,
+              Products: {
+                select: {
+                  Id: true,
+                  Name: true,
+                  Price: true,
+                  Image: true,
+                  Description: true,
+                  Stock: true,
+                  SubCategoryId: true,
+                  SubCategory: {
+                    select: {
+                      Id: true,
+                      Name: true,
+                      CategoryId: true,
+                      Category: {
+                        select: {
+                          Id: true,
+                          Name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
             orderBy: {
               CreatedAt: 'desc',

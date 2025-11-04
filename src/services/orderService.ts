@@ -11,13 +11,39 @@ export class OrderService {
       const whereClause = status ? { Status: status } : {};
 
       const [orders, total] = await Promise.all([
-        prisma.orders.findMany({
+        (prisma as any).orders.findMany({
           where: whereClause,
           orderBy: { CreatedAt: 'desc' },
           skip: offset,
           take: limit,
+          include: {
+            OrderItems: {
+              include: {
+                Products: {
+                  select: {
+                    Id: true,
+                    Name: true,
+                    Price: true,
+                    Image: true,
+                    SubCategory: {
+                      select: {
+                        Id: true,
+                        Name: true,
+                        Category: {
+                          select: {
+                            Id: true,
+                            Name: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         }),
-        prisma.orders.count({ where: whereClause }),
+        (prisma as any).orders.count({ where: whereClause }),
       ]);
 
       return {
@@ -34,7 +60,7 @@ export class OrderService {
     try {
       logger.info(`Fetching order with ID: ${id}`);
       
-      const order = await prisma.orders.findUnique({
+      const order = await (prisma as any).orders.findUnique({
         where: { Id: id },
         include: {
           OrderItems: {
@@ -47,6 +73,20 @@ export class OrderService {
                   Image: true,
                   Description: true,
                   Stock: true,
+                  SubCategoryId: true,
+                  SubCategory: {
+                    select: {
+                      Id: true,
+                      Name: true,
+                      CategoryId: true,
+                      Category: {
+                        select: {
+                          Id: true,
+                          Name: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -74,7 +114,7 @@ export class OrderService {
       const offset = (page - 1) * limit;
 
       const [orders, total] = await Promise.all([
-        prisma.orders.findMany({
+        (prisma as any).orders.findMany({
           where: { UserId: userId },
           orderBy: { CreatedAt: 'desc' },
           skip: offset,
@@ -90,13 +130,27 @@ export class OrderService {
                     Image: true,
                     Description: true,
                     Stock: true,
+                    SubCategoryId: true,
+                    SubCategory: {
+                      select: {
+                        Id: true,
+                        Name: true,
+                        CategoryId: true,
+                        Category: {
+                          select: {
+                            Id: true,
+                            Name: true,
+                          },
+                        },
+                      },
+                    },
                   },
                 },
               },
             },
           },
         }),
-        prisma.orders.count({ where: { UserId: userId } }),
+        (prisma as any).orders.count({ where: { UserId: userId } }),
       ]);
 
       logger.info(`Found ${orders.length} orders for user ${userId}`);
@@ -126,7 +180,7 @@ export class OrderService {
       }
 
       // Create order
-      const order = await prisma.orders.create({
+      const order = await (prisma as any).orders.create({
         data: {
           UserId: orderData.UserId,
           Total: orderData.Total,
@@ -142,7 +196,7 @@ export class OrderService {
       if (orderData.Items && orderData.Items.length > 0) {
         logger.info(`Creating ${orderData.Items.length} order items`);
         
-        await prisma.orderItems.createMany({
+        await (prisma as any).orderItems.createMany({
           data: orderData.Items.map(item => ({
             OrderId: order.Id,
             ProductId: item.ProductId,
@@ -154,8 +208,8 @@ export class OrderService {
         logger.info('Order items created successfully');
       }
 
-      // Return order with items
-      const orderWithItems = await prisma.orders.findUnique({
+      // Return order with items and full product info including category hierarchy
+      const orderWithItems = await (prisma as any).orders.findUnique({
         where: { Id: order.Id },
         include: {
           OrderItems: {
@@ -168,6 +222,20 @@ export class OrderService {
                   Image: true,
                   Description: true,
                   Stock: true,
+                  SubCategoryId: true,
+                  SubCategory: {
+                    select: {
+                      Id: true,
+                      Name: true,
+                      CategoryId: true,
+                      Category: {
+                        select: {
+                          Id: true,
+                          Name: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -185,14 +253,59 @@ export class OrderService {
 
   async updateOrderStatus(id: number, status: string) {
     try {
-      const order = await prisma.orders.update({
+      // Validate status
+      const validStatuses = ['pending', 'processing', 'completed', 'cancelled'];
+      if (!status || !validStatuses.includes(status.toLowerCase())) {
+        throw new AppError(`Invalid status. Must be one of: ${validStatuses.join(', ')}`, 400);
+      }
+
+      // Check if order exists
+      const order = await (prisma as any).orders.findUnique({
+        where: { Id: id },
+      });
+
+      if (!order) {
+        throw new AppError('Order not found', 404);
+      }
+
+      // Update order status
+      const updatedOrder = await (prisma as any).orders.update({
         where: { Id: id },
         data: {
-          Status: status,
+          Status: status.toLowerCase(),
+        },
+        include: {
+          OrderItems: {
+            include: {
+              Products: {
+                select: {
+                  Id: true,
+                  Name: true,
+                  Price: true,
+                  Image: true,
+                  SubCategoryId: true,
+                  SubCategory: {
+                    select: {
+                      Id: true,
+                      Name: true,
+                      CategoryId: true,
+                      Category: {
+                        select: {
+                          Id: true,
+                          Name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       });
 
-      return order;
+      logger.info(`Order ${id} status updated to: ${status}`);
+      return updatedOrder;
     } catch (error) {
       logger.error('OrderService.updateOrderStatus error:', error);
       if (error instanceof AppError) throw error;

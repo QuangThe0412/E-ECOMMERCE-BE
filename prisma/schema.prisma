@@ -49,20 +49,56 @@ model Orders {
 }
 
 model Products {
-  Id            Int          @id(map: "PK__Products__3214EC07BE189123") @default(autoincrement())
-  Name          String       @db.NVarChar(255)
-  Description   String?      @db.NVarChar(Max)
-  Image         String?      @db.NVarChar(500)
-  Category      String?      @db.NVarChar(100)
-  Price         Decimal      @db.Decimal(18, 2)
-  OriginalPrice Decimal?     @db.Decimal(18, 2)
-  Stock         Int
-  Rating        Float?
-  Reviews       Int?
-  Colors        String?      @db.NVarChar(100)
-  Sizes         String?      @db.NVarChar(100)
-  OrderItems    OrderItems[]
-  CartItems     CartItems[]
+  Id              Int            @id(map: "PK__Products__3214EC07BE189123") @default(autoincrement())
+  Name            String         @db.NVarChar(255)
+  Description     String?        @db.NVarChar(Max)
+  Image           String?        @db.NVarChar(500)
+  Price           Decimal        @db.Decimal(18, 2)
+  OriginalPrice   Decimal?       @db.Decimal(18, 2)
+  Stock           Int
+  Rating          Float?
+  Reviews         Int?
+  Colors          String?        @db.NVarChar(100)
+  Sizes           String?        @db.NVarChar(100)
+  SubCategoryId   Int
+  SubCategory     SubCategories  @relation(fields: [SubCategoryId], references: [Id], onDelete: Cascade, map: "FK_Products_SubCategories")
+  OrderItems      OrderItems[]
+  CartItems       CartItems[]
+
+  @@index([SubCategoryId], map: "IX_Products_SubCategoryId")
+}
+
+model Categories {
+  Id              Int              @id(map: "PK__Categories__3214EC07A1234567") @default(autoincrement())
+  Name            String           @unique @db.NVarChar(255)
+  Description     String?          @db.NVarChar(Max)
+  Image           String?          @db.NVarChar(500)
+  DisplayOrder    Int?             @default(0)
+  IsActive        Boolean?         @default(true)
+  CreatedAt       DateTime?        @default(now()) @db.DateTime
+  UpdatedAt       DateTime?        @default(now()) @updatedAt @db.DateTime
+  SubCategories   SubCategories[]
+
+  @@index([IsActive], map: "IX_Categories_IsActive")
+  @@index([DisplayOrder], map: "IX_Categories_DisplayOrder")
+}
+
+model SubCategories {
+  Id              Int         @id(map: "PK__SubCategories__3214EC07B2345678") @default(autoincrement())
+  Name            String      @db.NVarChar(255)
+  Description     String?     @db.NVarChar(Max)
+  Image           String?     @db.NVarChar(500)
+  CategoryId      Int
+  Category        Categories  @relation(fields: [CategoryId], references: [Id], onDelete: Cascade, map: "FK_SubCategories_Categories")
+  DisplayOrder    Int?        @default(0)
+  IsActive        Boolean?    @default(true)
+  CreatedAt       DateTime?   @default(now()) @db.DateTime
+  UpdatedAt       DateTime?   @default(now()) @updatedAt @db.DateTime
+  Products        Products[]
+
+  @@unique([CategoryId, Name], map: "UQ_SubCategories_CategoryId_Name")
+  @@index([CategoryId], map: "IX_SubCategories_CategoryId")
+  @@index([IsActive], map: "IX_SubCategories_IsActive")
 }
 
 model RefreshTokens {

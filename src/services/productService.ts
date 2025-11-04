@@ -1,13 +1,15 @@
 import prisma from '../lib/prisma';
 import { AppError } from '../middlewares/errorHandler';
-import type { Product, CreateProductDTO, UpdateProductDTO } from '../types/product';
+import { logger } from '../utils/logger';
+import type { CreateProductDTO, UpdateProductDTO } from '../types/category';
 
 export class ProductService {
   /**
-   * Get all products with pagination, search, and filter
+   * Get all products with pagination, search, and filter by subcategory
    */
-  async getAllProducts(page: number, limit: number, search?: string, category?: string) {
+  async getAllProducts(page: number, limit: number, search?: string, subCategoryId?: number) {
     try {
+      logger.info(`Fetching products - page: ${page}, limit: ${limit}`);
       const offset = (page - 1) * limit;
 
       // Build where clause
@@ -20,21 +22,28 @@ export class ProductService {
         ];
       }
 
-      if (category) {
-        where.Category = category;
+      if (subCategoryId) {
+        where.SubCategoryId = subCategoryId;
       }
 
       // Execute queries in parallel
       const [data, total] = await Promise.all([
-        prisma.products.findMany({
+        (prisma as any).products.findMany({
           where,
           skip: offset,
           take: limit,
+          include: {
+            SubCategory: {
+              include: {
+                Category: true,
+              },
+            },
+          },
           orderBy: {
             Id: 'desc',
           },
         }),
-        prisma.products.count({ where }),
+        (prisma as any).products.count({ where }),
       ]);
 
       return {
@@ -42,56 +51,137 @@ export class ProductService {
         total,
       };
     } catch (error) {
-      console.error('ProductService.getAllProducts error:', error);
+      logger.error('ProductService.getAllProducts error:', error);
       throw new AppError('Error fetching products', 500);
     }
   }
 
   /**
-   * Get product by ID
+   * Get product by ID with full category hierarchy
    */
   async getProductById(id: number) {
     try {
-      const product = await prisma.products.findUnique({
+      logger.info(`Fetching product with ID: ${id}`);
+
+      const product = await (prisma as any).products.findUnique({
         where: { Id: id },
+        include: {
+          SubCategory: {
+            include: {
+              Category: true,
+            },
+          },
+        },
       });
 
       if (!product) {
+        logger.warn(`Product not found: ${id}`);
         throw new AppError('Product not found', 404);
       }
 
-      return product as unknown as Product;
+      return product;
     } catch (error) {
+      logger.error('ProductService.getProductById error:', error);
       if (error instanceof AppError) throw error;
-      console.error('ProductService.getProductById error:', error);
       throw new AppError('Error fetching product', 500);
+    }
+  }
+
+  /**
+   * Get products by subcategory
+   */
+  async getProductsBySubCategory(subCategoryId: number, page: number = 1, limit: number = 10) {
+    try {
+      logger.info(`Fetching products for subcategory: ${subCategoryId}`);
+      const offset = (page - 1) * limit;
+
+      // Check if subcategory exists
+      const subCategory = await (prisma as any).subCategories.findUnique({
+        where: { Id: subCategoryId },
+      });
+
+      if (!subCategory) {
+        throw new AppError('SubCategory not found', 404);
+      }
+
+      const [data, total] = await Promise.all([
+        (prisma as any).products.findMany({
+          where: { SubCategoryId: subCategoryId },
+          skip: offset,
+          take: limit,
+          include: {
+            SubCategory: {
+              include: {
+                Category: true,
+              },
+            },
+          },
+          orderBy: { Id: 'desc' },
+        }),
+        (prisma as any).products.count({
+          where: { SubCategoryId: subCategoryId },
+        }),
+      ]);
+
+      return { data, total };
+    } catch (error) {
+      logger.error('ProductService.getProductsBySubCategory error:', error);
+      if (error instanceof AppError) throw error;
+      throw new AppError('Error fetching products by subcategory', 500);
     }
   }
 
   /**
    * Create new product
    */
-  async createProduct(productData: CreateProductDTO) {
+  async createProduct(data: CreateProductDTO) {
     try {
-      const product = await prisma.products.create({
+      logger.info('Creating product:', data.Name);
+
+      // Validate subcategory exists
+      const subCategory = await (prisma as any).subCategories.findUnique({
+        where: { Id: data.SubCategoryId },
+      });
+
+      if (!subCategory) {
+        throw new AppError('SubCategory not found', 404);
+      }
+
+      // Validate product name is unique
+      const exists = await (prisma as any).products.findFirst({
+        where: { Name: data.Name },
+      });
+
+      if (exists) {
+        throw new AppError('Product name already exists', 400);
+      }
+
+      const product = await (prisma as any).products.create({
         data: {
-          Name: productData.Name,
-          Description: productData.Description || null,
-          Image: productData.Image || null,
-          Category: productData.Category || null,
-          Price: productData.Price,
-          OriginalPrice: productData.OriginalPrice || null,
-          Stock: productData.Stock,
-          Rating: productData.Rating || null,
-          Reviews: productData.Reviews || 0,
-          Colors: productData.Colors || null,
-          Sizes: productData.Sizes || null,
+          Name: data.Name,
+          Description: data.Description || null,
+          Image: data.Image || null,
+          Price: data.Price,
+          OriginalPrice: data.OriginalPrice || null,
+          Stock: data.Stock,
+          SubCategoryId: data.SubCategoryId,
+          Colors: data.Colors || null,
+          Sizes: data.Sizes || null,
+        },
+        include: {
+          SubCategory: {
+            include: {
+              Category: true,
+            },
+          },
         },
       });
 
-      return product as unknown as Product;
+      logger.info('Product created successfully:', product.Id);
+      return product;
     } catch (error) {
-      console.error('ProductService.createProduct error:', error);
+      logger.error('ProductService.createProduct error:', error);
+      if (error instanceof AppError) throw error;
       throw new AppError('Error creating product', 500);
     }
   }
@@ -99,39 +189,57 @@ export class ProductService {
   /**
    * Update product
    */
-  async updateProduct(id: number, productData: UpdateProductDTO) {
+  async updateProduct(id: number, data: UpdateProductDTO) {
     try {
-      // Check if product exists
-      await this.getProductById(id);
+      logger.info(`Updating product with ID: ${id}`);
 
-      // Build update data - only include defined fields
-      const updateData: any = {};
-
-      if (productData.Name !== undefined) updateData.Name = productData.Name;
-      if (productData.Description !== undefined) updateData.Description = productData.Description;
-      if (productData.Image !== undefined) updateData.Image = productData.Image;
-      if (productData.Category !== undefined) updateData.Category = productData.Category;
-      if (productData.Price !== undefined) updateData.Price = productData.Price;
-      if (productData.OriginalPrice !== undefined) updateData.OriginalPrice = productData.OriginalPrice;
-      if (productData.Stock !== undefined) updateData.Stock = productData.Stock;
-      if (productData.Rating !== undefined) updateData.Rating = productData.Rating;
-      if (productData.Reviews !== undefined) updateData.Reviews = productData.Reviews;
-      if (productData.Colors !== undefined) updateData.Colors = productData.Colors;
-      if (productData.Sizes !== undefined) updateData.Sizes = productData.Sizes;
-
-      if (Object.keys(updateData).length === 0) {
-        throw new AppError('No fields to update', 400);
-      }
-
-      const product = await prisma.products.update({
+      // Check product exists
+      const product = await (prisma as any).products.findUnique({
         where: { Id: id },
-        data: updateData,
       });
 
-      return product as unknown as Product;
+      if (!product) {
+        throw new AppError('Product not found', 404);
+      }
+
+      // Validate new subcategory if provided
+      if (data.SubCategoryId) {
+        const subCategory = await (prisma as any).subCategories.findUnique({
+          where: { Id: data.SubCategoryId },
+        });
+
+        if (!subCategory) {
+          throw new AppError('SubCategory not found', 404);
+        }
+      }
+
+      const updated = await (prisma as any).products.update({
+        where: { Id: id },
+        data: {
+          Name: data.Name,
+          Description: data.Description,
+          Image: data.Image,
+          Price: data.Price,
+          OriginalPrice: data.OriginalPrice,
+          Stock: data.Stock,
+          SubCategoryId: data.SubCategoryId,
+          Colors: data.Colors,
+          Sizes: data.Sizes,
+        },
+        include: {
+          SubCategory: {
+            include: {
+              Category: true,
+            },
+          },
+        },
+      });
+
+      logger.info('Product updated successfully:', updated.Id);
+      return updated;
     } catch (error) {
+      logger.error('ProductService.updateProduct error:', error);
       if (error instanceof AppError) throw error;
-      console.error('ProductService.updateProduct error:', error);
       throw new AppError('Error updating product', 500);
     }
   }
@@ -141,35 +249,37 @@ export class ProductService {
    */
   async deleteProduct(id: number) {
     try {
-      // Check if product exists
-      await this.getProductById(id);
+      logger.info(`Deleting product with ID: ${id}`);
 
-      // Check if product is in any orders
-      const orderItemsCount = await prisma.orderItems.count({
+      // Check product exists
+      const product = await (prisma as any).products.findUnique({
+        where: { Id: id },
+      });
+
+      if (!product) {
+        throw new AppError('Product not found', 404);
+      }
+
+      // Check if product has order items
+      const orderItemsCount = await (prisma as any).orderItems.count({
         where: { ProductId: id },
       });
 
       if (orderItemsCount > 0) {
-        throw new AppError('Cannot delete product that exists in orders', 400);
+        throw new AppError('Cannot delete product with existing orders', 400);
       }
 
-      await prisma.products.delete({
+      await (prisma as any).products.delete({
         where: { Id: id },
       });
 
+      logger.info('Product deleted successfully');
       return true;
     } catch (error) {
+      logger.error('ProductService.deleteProduct error:', error);
       if (error instanceof AppError) throw error;
-      console.error('ProductService.deleteProduct error:', error);
       throw new AppError('Error deleting product', 500);
     }
-  }
-
-  /**
-   * Get products by category
-   */
-  async getProductsByCategory(category: string, page: number, limit: number) {
-    return this.getAllProducts(page, limit, undefined, category);
   }
 
   /**
@@ -177,6 +287,7 @@ export class ProductService {
    */
   async updateProductStock(id: number, quantity: number) {
     try {
+      logger.info(`Updating product stock - ID: ${id}, Quantity: ${quantity}`);
       const product = await this.getProductById(id);
 
       const newStock = product.Stock + quantity;
@@ -184,15 +295,16 @@ export class ProductService {
         throw new AppError('Insufficient stock', 400);
       }
 
-      const updatedProduct = await prisma.products.update({
+      const updatedProduct = await (prisma as any).products.update({
         where: { Id: id },
         data: { Stock: newStock },
       });
 
-      return updatedProduct as unknown as Product;
+      logger.info('Product stock updated successfully');
+      return updatedProduct;
     } catch (error) {
+      logger.error('ProductService.updateProductStock error:', error);
       if (error instanceof AppError) throw error;
-      console.error('ProductService.updateProductStock error:', error);
       throw new AppError('Error updating product stock', 500);
     }
   }
