@@ -11,7 +11,25 @@ export class ProductController {
   }
 
   getAllProducts = asyncHandler(async (req: Request, res: Response) => {
-    const { page = 1, limit = 10, search, subCategoryId } = req.query;
+    const { page = 1, limit = 10, search, subCategoryId, category } = req.query;
+    
+    // If category name provided, use category filter
+    if (category) {
+      const result = await this.productService.getProductsByCategory(
+        category as string,
+        Number(page),
+        Number(limit)
+      );
+      
+      return ApiResponse.paginated(
+        res,
+        result.data,
+        Number(page),
+        Number(limit),
+        result.total,
+        'Products retrieved successfully'
+      );
+    }
     
     const result = await this.productService.getAllProducts(
       Number(page),

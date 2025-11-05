@@ -1,97 +1,285 @@
-# E-Commerce Backend API
+## ▶️ Chạy Server
 
-Backend API for E-Commerce application built with Express, TypeScript, Prisma and SQL Server.
+### Development (Hot Reload)
 
-## Environment Configuration
-
-The application uses different environment files based on the environment:
-
-### Development Environment (`.env.dev`)
-- Swagger documentation is **enabled**
-- Detailed logging
-- Hot reload with tsx watch
-- File: `.env.dev`
-
-### Production Environment (`.env`)
-- Swagger documentation is **disabled** (returns 403)
-- Optimized logging
-- Compiled JavaScript execution
-- File: `.env`
-
-## Getting Started
-
-### 1. Install Dependencies
 ```bash
-npm install
+npm run dev
 ```
 
-### 2. Setup Environment Variables
+- Server: `http://localhost:3000`
+- Swagger: `http://localhost:3000/api-docs`
+- Auto-reload khi file thay đổi
+- Database: `.env.dev`
 
-**For Development:**
+### Production
+
 ```bash
-cp .env.example .env.dev
-```
-Edit `.env.dev` with your development database and settings.
+# Build
+npm run build
 
-**For Production:**
+# Start
+npm start
+```
+
+- Database: `.env`
+- Swagger: bị disable
+
+---
+
+## 💾 Quản lý Database
+
+### Prisma Commands
+
+#### ⭐ PHẢI chạy sau khi sửa `prisma/schema.prisma`
+
 ```bash
-cp .env.example .env
+npx prisma generate
 ```
-Edit `.env` with your production database and settings.
 
-**Important:** Don't set `NODE_ENV` in the files - it's automatically set by npm scripts.
+Sinh Prisma client từ schema mới.
 
-### 3. Run Database Migrations
+#### Sync Database
+
+**Development**:
+```bash
+npx prisma db push
+```
+
+**Production** (Safe):
+```bash
+npx prisma migrate dev --name "describe_change"
+npx prisma migrate deploy
+```
+
+#### View Database GUI
+
+```bash
+npx prisma studio
+```
+
+Mở `http://localhost:5555` để view/edit data.
+
+---
+
+## 🆕 Thêm Feature Mới - Step by Step
+
+### Step 1: Thêm Model vào Schema
+
+Edit `prisma/schema.prisma`:
+
+```typescript
+model MyModel {
+  Id          Int         @id @default(autoincrement())
+  Name        String      @db.NVarChar(255)
+  Description String?     @db.NVarChar(Max)
+  CreatedAt   DateTime    @default(now()) @db.DateTime
+  UpdatedAt   DateTime    @default(now()) @updatedAt @db.DateTime
+  
+  @@index([Name])
+}
+```
+
+### Step 2: Sinh Client & Sync DB
+
 ```bash
 npx prisma generate
 npx prisma db push
 ```
 
-### 4. Run the Application
+### Step 3: Tạo TypeScript Types
 
-**Development mode** (with Swagger):
-```bash
-npm run dev
+File: `src/types/myModel.ts`
+
+```typescript
+export interface MyModel {
+  Id: number;
+  Name: string;
+  Description?: string | null;
+  CreatedAt?: Date;
+  UpdatedAt?: Date;
+}
+
+export interface CreateMyModelDTO {
+  Name: string;
+  Description?: string;
+}
+
+export interface UpdateMyModelDTO {
+  Name?: string;
+  Description?: string;
+}
 ```
-- Server: http://localhost:3000
-- Swagger: http://localhost:3000/api-docs
 
-**Production mode** (without Swagger):
-```bash
-npm run build
-npm start
+### Step 4: Tạo Service
+
+File: `src/services/myModelService.ts`
+
+```typescript
+import prisma from '../lib/prisma';
+import { AppError } from '../middlewares/errorHandler';
+import { logger } from '../utils/logger';
+
+export class MyModelService {
+  async getAll(page = 1, limit = 10) {
+    try {
+      const offset = (page - 1) * limit;
+      const [data, total] = await Promise.all([
+        (prisma as any).myModel.findMany({
+          skip: offset,
+          take: limit,
+          orderBy: { CreatedAt: 'desc' }
+        }),
+        (prisma as any).myModel.count()
+      ]);
+      return { data, total };
+    } catch (error) {
+      logger.error('Error:', error);
+      throw new AppError('Error fetching', 500);
+    }
+  }
+
+  async getById(id: number) {
+    try {
+      const data = await (prisma as any).myModel.findUnique({
+        where: { Id: id }
+      });
+      if (!data) throw new AppError('Not found', 404);
+      return data;
+    } catch (error) {
+      logger.error('Error:', error);
+      if (error instanceof AppError) throw error;
+      throw new AppError('Error fetching', 500);
+    }
+  }
+
+  async create(dto: CreateMyModelDTO) {
+    try {
+      logger.info('Creating:', dto.Name);
+      return await (prisma as any).myModel.create({ data: dto });
+    } catch (error) {
+      logger.error('Error:', error);
+      throw new AppError('Error creating', 500);
+    }
+  }
+
+  async update(id: number, dto: UpdateMyModelDTO) {
+    try {
+      return await (prisma as any).myModel.update({
+        where: { Id: id },
+        data: dto
+      });
+    } catch (error) {
+      logger.error('Error:', error);
+      throw new AppError('Error updating', 500);
+    }
+  }
+
+  async delete(id: number) {
+    try {
+      await (prisma as any).myModel.delete({ where: { Id: id } });
+      return true;
+    } catch (error) {
+      logger.error('Error:', error);
+      throw new AppError('Error deleting', 500);
+    }
+  }
+}
 ```
-- Server: http://localhost:3000
-- Swagger: Disabled (403 Forbidden)
 
-**Development build** (compiled but with dev env):
-```bash
-npm run build
-npm run start:dev
+**Lưu ý**: Dùng `(prisma as any)` để tránh TypeScript issues
+
+### Step 5: Tạo Controller
+
+File: `src/controllers/myModelController.ts`
+
+```typescript
+import { Request, Response } from 'express';
+import { asyncHandler } from '../middlewares/errorHandler';
+import { ApiResponse } from '../utils/response';
+import { MyModelService } from '../services/myModelService';
+
+const service = new MyModelService();
+
+export const myModelController = {
+  /**
+   * @swagger
+   * /api/mymodels:
+   *   get:
+   *     summary: Get all
+   *     tags: [MyModel]
+   */
+  getAll: asyncHandler(async (req: Request, res: Response) => {
+    const { page = 1, limit = 10 } = req.query;
+    const data = await service.getAll(Number(page), Number(limit));
+    ApiResponse.success(res, 'Success', data, 200);
+  }),
+
+  /**
+   * @swagger
+   * /api/mymodels/{id}:
+   *   get:
+   *     summary: Get by ID
+   *     tags: [MyModel]
+   */
+  getById: asyncHandler(async (req: Request, res: Response) => {
+    const data = await service.getById(Number(req.params.id));
+    ApiResponse.success(res, 'Success', data, 200);
+  }),
+
+  /**
+   * @swagger
+   * /api/mymodels:
+   *   post:
+   *     summary: Create
+   *     tags: [MyModel]
+   */
+  create: asyncHandler(async (req: Request, res: Response) => {
+    const data = await service.create(req.body);
+    ApiResponse.success(res, 'Created', data, 201);
+  }),
+
+  update: asyncHandler(async (req: Request, res: Response) => {
+    const data = await service.update(Number(req.params.id), req.body);
+    ApiResponse.success(res, 'Updated', data, 200);
+  }),
+
+  delete: asyncHandler(async (req: Request, res: Response) => {
+    await service.delete(Number(req.params.id));
+    ApiResponse.success(res, 'Deleted', null, 200);
+  })
+};
 ```
 
-## API Endpoints
+### Step 6: Tạo Routes
 
-- `/api/auth` - Authentication
-- `/api/users` - User management
-- `/api/products` - Product catalog
-- `/api/orders` - Order management
-- `/api/cart` - Shopping cart
-- `/api/banners` - Banner management
-- `/api-docs` - Swagger documentation (dev only)
+File: `src/routes/myModelRoutes.ts`
 
-## Scripts
+```typescript
+import { Router } from 'express';
+import { myModelController } from '../controllers/myModelController';
+import { authenticate } from '../middlewares/authMiddleware';
 
-- `npm run dev` - Run development server with hot reload
-- `npm run build` - Build for production
-- `npm start` - Run production server (NODE_ENV=production)
-- `npm run start:dev` - Run built app in development mode
+const router = Router();
 
-## Tech Stack
+router.get('/', myModelController.getAll);
+router.get('/:id', myModelController.getById);
+router.post('/', authenticate, myModelController.create);
+router.put('/:id', authenticate, myModelController.update);
+router.delete('/:id', authenticate, myModelController.delete);
 
-- **Express** - Web framework
-- **TypeScript** - Type safety
-- **Prisma** - ORM
-- **SQL Server** - Database
-- **JWT** - Authentication
-- **Swagger** - API documentation (dev only)
+export default router;
+```
+
+### Step 7: Đăng ký Routes trong Server
+
+Edit `src/server.ts`:
+
+```typescript
+// Import
+import myModelRoutes from './routes/myModelRoutes';
+
+// Register (trước error handler)
+app.use('/api/mymodels', myModelRoutes);
+```
+
+**Happy Coding! 🚀**

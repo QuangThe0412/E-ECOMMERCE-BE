@@ -88,6 +88,64 @@ export class ProductService {
   }
 
   /**
+   * Get products by category name
+   */
+  async getProductsByCategory(categoryName: string, page: number = 1, limit: number = 10) {
+    try {
+      logger.info(`Fetching products for category: ${categoryName}`);
+      const offset = (page - 1) * limit;
+
+      // Check if category exists
+      const category = await (prisma as any).categories.findFirst({
+        where: { Name: categoryName },
+      });
+
+      if (!category) {
+        logger.warn(`Category not found: ${categoryName}`);
+        throw new AppError('Category not found', 404);
+      }
+
+      // Get all subcategories for this category
+      const subCategories = await (prisma as any).subCategories.findMany({
+        where: { CategoryId: category.Id },
+        select: { Id: true },
+      });
+
+      const subCategoryIds = subCategories.map((sc: any) => sc.Id);
+
+      // If no subcategories, return empty result
+      if (subCategoryIds.length === 0) {
+        return { data: [], total: 0 };
+      }
+
+      const [data, total] = await Promise.all([
+        (prisma as any).products.findMany({
+          where: { SubCategoryId: { in: subCategoryIds } },
+          skip: offset,
+          take: limit,
+          include: {
+            SubCategory: {
+              include: {
+                Category: true,
+              },
+            },
+          },
+          orderBy: { Id: 'desc' },
+        }),
+        (prisma as any).products.count({
+          where: { SubCategoryId: { in: subCategoryIds } },
+        }),
+      ]);
+
+      return { data, total };
+    } catch (error) {
+      logger.error('ProductService.getProductsByCategory error:', error);
+      if (error instanceof AppError) throw error;
+      throw new AppError('Error fetching products by category', 500);
+    }
+  }
+
+  /**
    * Get products by subcategory
    */
   async getProductsBySubCategory(subCategoryId: number, page: number = 1, limit: number = 10) {

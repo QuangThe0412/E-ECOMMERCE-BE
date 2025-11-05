@@ -12,7 +12,7 @@ CREATE TABLE ECommerceDB.dbo.Banners (
 	Title nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	Subtitle nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	Description nvarchar(1000) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	Image nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	[Image] nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
 	ButtonText nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	ButtonLink nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
 	BackgroundColor nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
@@ -26,6 +26,32 @@ CREATE TABLE ECommerceDB.dbo.Banners (
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
 	 ON [PRIMARY ] ;
  CREATE NONCLUSTERED INDEX IX_Banners_IsActive ON ECommerceDB.dbo.Banners (  IsActive ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+
+
+-- ECommerceDB.dbo.Categories definition
+
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.Categories;
+
+CREATE TABLE ECommerceDB.dbo.Categories (
+	Id int IDENTITY(1,1) NOT NULL,
+	Name nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	Description nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Image] nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	DisplayOrder int DEFAULT 0 NULL,
+	IsActive bit DEFAULT 1 NULL,
+	CreatedAt datetime DEFAULT getdate() NULL,
+	UpdatedAt datetime DEFAULT getdate() NULL,
+	CONSTRAINT Categories_Name_key UNIQUE (Name),
+	CONSTRAINT PK__Categories__3214EC07A1234567 PRIMARY KEY (Id)
+);
+ CREATE NONCLUSTERED INDEX IX_Categories_DisplayOrder ON ECommerceDB.dbo.Categories (  DisplayOrder ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_Categories_IsActive ON ECommerceDB.dbo.Categories (  IsActive ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
 	 ON [PRIMARY ] ;
 
@@ -53,29 +79,6 @@ CREATE TABLE ECommerceDB.dbo.LoginAttempts (
  CREATE NONCLUSTERED INDEX IX_LoginAttempts_Username ON ECommerceDB.dbo.LoginAttempts (  Username ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
 	 ON [PRIMARY ] ;
-
-
--- ECommerceDB.dbo.Products definition
-
--- Drop table
-
--- DROP TABLE ECommerceDB.dbo.Products;
-
-CREATE TABLE ECommerceDB.dbo.Products (
-	Id int IDENTITY(1,1) NOT NULL,
-	Name nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
-	Description nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	[Image] nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	Category nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	Price decimal(18,2) NOT NULL,
-	OriginalPrice decimal(18,2) NULL,
-	Stock int NOT NULL,
-	Rating float NULL,
-	Reviews int NULL,
-	Colors nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	Sizes nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
-	CONSTRAINT PK__Products__3214EC07BE189123 PRIMARY KEY (Id)
-);
 
 
 -- ECommerceDB.dbo.Users definition
@@ -188,6 +191,61 @@ CREATE TABLE ECommerceDB.dbo.RefreshTokens (
 	 ON [PRIMARY ] ;
 
 
+-- ECommerceDB.dbo.SubCategories definition
+
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.SubCategories;
+
+CREATE TABLE ECommerceDB.dbo.SubCategories (
+	Id int IDENTITY(1,1) NOT NULL,
+	Name nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	Description nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Image] nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	CategoryId int NOT NULL,
+	DisplayOrder int DEFAULT 0 NULL,
+	IsActive bit DEFAULT 1 NULL,
+	CreatedAt datetime DEFAULT getdate() NULL,
+	UpdatedAt datetime DEFAULT getdate() NULL,
+	CONSTRAINT PK__SubCategories__3214EC07B2345678 PRIMARY KEY (Id),
+	CONSTRAINT UQ_SubCategories_CategoryId_Name UNIQUE (CategoryId,Name),
+	CONSTRAINT FK_SubCategories_Categories FOREIGN KEY (CategoryId) REFERENCES ECommerceDB.dbo.Categories(Id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+ CREATE NONCLUSTERED INDEX IX_SubCategories_CategoryId ON ECommerceDB.dbo.SubCategories (  CategoryId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+ CREATE NONCLUSTERED INDEX IX_SubCategories_IsActive ON ECommerceDB.dbo.SubCategories (  IsActive ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+
+
+-- ECommerceDB.dbo.Products definition
+
+-- Drop table
+
+-- DROP TABLE ECommerceDB.dbo.Products;
+
+CREATE TABLE ECommerceDB.dbo.Products (
+	Id int IDENTITY(1,1) NOT NULL,
+	Name nvarchar(255) COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL,
+	Description nvarchar(MAX) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	[Image] nvarchar(500) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Price decimal(18,2) NOT NULL,
+	OriginalPrice decimal(18,2) NULL,
+	Stock int NOT NULL,
+	Rating float NULL,
+	Reviews int NULL,
+	Colors nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	Sizes nvarchar(100) COLLATE SQL_Latin1_General_CP1_CI_AS NULL,
+	SubCategoryId int NOT NULL,
+	CONSTRAINT PK__Products__3214EC07BE189123 PRIMARY KEY (Id),
+	CONSTRAINT FK_Products_SubCategories FOREIGN KEY (SubCategoryId) REFERENCES ECommerceDB.dbo.SubCategories(Id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+ CREATE NONCLUSTERED INDEX IX_Products_SubCategoryId ON ECommerceDB.dbo.Products (  SubCategoryId ASC  )  
+	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
+	 ON [PRIMARY ] ;
+
+
 -- ECommerceDB.dbo.CartItems definition
 
 -- Drop table
@@ -236,7 +294,5 @@ CREATE TABLE ECommerceDB.dbo.OrderItems (
  CREATE NONCLUSTERED INDEX IX_OrderItems_ProductId ON ECommerceDB.dbo.OrderItems (  ProductId ASC  )  
 	 WITH (  PAD_INDEX = OFF ,FILLFACTOR = 100  ,SORT_IN_TEMPDB = OFF , IGNORE_DUP_KEY = OFF , STATISTICS_NORECOMPUTE = OFF , ONLINE = OFF , ALLOW_ROW_LOCKS = ON , ALLOW_PAGE_LOCKS = ON  )
 	 ON [PRIMARY ] ;
-ALTER TABLE ECommerceDB.dbo.OrderItems WITH NOCHECK ADD CONSTRAINT CK_OrderItems_Quantity CHECK (([Quantity]>(0)));
-ALTER TABLE ECommerceDB.dbo.OrderItems WITH NOCHECK ADD CONSTRAINT CK_OrderItems_Price CHECK (([Price]>=(0)));
 
 
