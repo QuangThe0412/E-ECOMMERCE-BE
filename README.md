@@ -51,7 +51,7 @@ npx prisma migrate dev --name "describe_change"
 npx prisma migrate deploy
 ```
 
-#### View Database GUI
+#### View Database GUI -Testing
 
 ```bash
 npx prisma studio
