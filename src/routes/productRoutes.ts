@@ -91,8 +91,6 @@ router.get('/', productController.getAllProducts);
        500:
          description: Internal server error
  */
-router.get('/:id', productController.getProductById);
-
 /**
  * @swagger
  * /api/products/by-subcategory/{subCategoryId}:
@@ -141,11 +139,9 @@ router.get('/by-subcategory/:subCategoryId', productController.getProductsBySubC
  *         description: Product details
  *       404:
  *         description: Product not found
-       500:
-         description: Internal server error
+ *       500:
+ *         description: Internal server error
  */
-/* #swagger.tags = ['Products']
-   #swagger.description = 'Get product by ID' */
 router.get('/:id', productController.getProductById);
 
 /**
@@ -205,8 +201,6 @@ router.get('/:id', productController.getProductById);
        500:
          description: Internal server error
  */
-/* #swagger.tags = ['Products']
-   #swagger.description = 'Create new product (Admin only)' */
 router.post('/', productController.createProduct);
 
 /**
@@ -252,8 +246,6 @@ router.post('/', productController.createProduct);
        500:
          description: Internal server error
  */
-/* #swagger.tags = ['Products']
-   #swagger.description = 'Update product (Admin only)' */
 router.put('/:id', productController.updateProduct);
 
 /**
@@ -279,8 +271,6 @@ router.put('/:id', productController.updateProduct);
        500:
          description: Internal server error
  */
-/* #swagger.tags = ['Products']
-   #swagger.description = 'Delete product (Admin only)' */
 router.delete('/:id', productController.deleteProduct);
 
 export default router;

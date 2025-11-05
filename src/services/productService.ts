@@ -339,31 +339,4 @@ export class ProductService {
       throw new AppError('Error deleting product', 500);
     }
   }
-
-  /**
-   * Update product stock
-   */
-  async updateProductStock(id: number, quantity: number) {
-    try {
-      logger.info(`Updating product stock - ID: ${id}, Quantity: ${quantity}`);
-      const product = await this.getProductById(id);
-
-      const newStock = product.Stock + quantity;
-      if (newStock < 0) {
-        throw new AppError('Insufficient stock', 400);
-      }
-
-      const updatedProduct = await (prisma as any).products.update({
-        where: { Id: id },
-        data: { Stock: newStock },
-      });
-
-      logger.info('Product stock updated successfully');
-      return updatedProduct;
-    } catch (error) {
-      logger.error('ProductService.updateProductStock error:', error);
-      if (error instanceof AppError) throw error;
-      throw new AppError('Error updating product stock', 500);
-    }
-  }
 }
